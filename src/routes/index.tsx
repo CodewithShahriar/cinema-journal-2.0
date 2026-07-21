@@ -72,9 +72,9 @@ function Home() {
             </span>
             CineJournal
           </div>
-          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
-            Your movie journal
-          </h1>
+          {/* <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
+            
+          </h1> */}
           <p className="mt-1 text-sm text-muted-foreground">Track, rate & remember every film.</p>
         </div>
         <Link
