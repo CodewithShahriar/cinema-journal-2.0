@@ -10,7 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Movie } from "@/lib/movie-types";
+import type { TrackedMovie } from "@/lib/movie-types";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -49,7 +49,7 @@ function SettingsPage() {
     const r = new FileReader();
     r.onload = () => {
       try {
-        const data = JSON.parse(r.result as string) as Movie[];
+        const data = JSON.parse(r.result as string) as TrackedMovie[];
         if (!Array.isArray(data)) throw new Error();
         replaceAll(data);
         toast.success(`Imported ${data.length} movies`);
