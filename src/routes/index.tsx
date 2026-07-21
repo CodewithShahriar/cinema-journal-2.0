@@ -70,7 +70,7 @@ function Home() {
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-md gradient-primary text-white">
               <Film className="h-3.5 w-3.5" />
             </span>
-            CineJournal
+            Cinema-Journal
           </div>
           {/* <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
             
