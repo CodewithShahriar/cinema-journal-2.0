@@ -65,7 +65,7 @@ function Home() {
 
   return (
     <AppShell>
-      <header className="mb-4 flex items-start justify-between gap-3">
+      <header className="mb-5 flex items-center justify-between gap-4 sm:gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none bg-black/30 ring-1 ring-white/10">
             <img
@@ -74,9 +74,11 @@ function Home() {
               className="h-full w-full scale-[1.55] -translate-y-2 object-cover mix-blend-screen"
             />
           </div>
-          <div className="min-w-0">
-            <h1 className="font-display truncate text-2xl font-semibold tracking-tight text-foreground">Cine-Journal</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">Track, rate & remember every film.</p>
+          <div className="min-w-0 space-y-1">
+            <h1 className="font-display truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              Cine-Journal
+            </h1>
+            <p className="text-sm text-muted-foreground">Track, rate & remember every film.</p>
           </div>
         </div>
       </header>
