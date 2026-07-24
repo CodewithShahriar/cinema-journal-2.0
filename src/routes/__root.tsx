@@ -66,7 +66,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#0f0f0f" },
+      { name: "theme-color", content: "#141414" },
       { title: "CineJournal — Your personal movie tracker" },
       { name: "description", content: "A beautiful, private movie journal. Track your watchlist, rate what you watched, and keep your cinema memories." },
       { name: "author", content: "CineJournal" },

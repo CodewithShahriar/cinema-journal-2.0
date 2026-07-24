@@ -34,7 +34,7 @@ function Stat({
   tint?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-card p-4 ring-1 ring-border shadow-lg shadow-black/20">
+    <div className="glass rounded-2xl p-4 shadow-lg shadow-black/20">
       <div
         className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg ${
           tint ?? "bg-primary/15 text-primary"
@@ -80,7 +80,7 @@ function Home() {
         </div>
       </header>
 
-      <div className="mb-6 rounded-2xl bg-card p-3 ring-1 ring-border shadow-lg shadow-black/20">
+      <div className="glass mb-6 rounded-2xl p-3 shadow-lg shadow-black/20">
         <TmdbSearchPicker compact />
       </div>
 
@@ -106,7 +106,7 @@ function Home() {
         />
       </div>
 
-      <div className="mb-6 rounded-2xl bg-card p-5 ring-1 ring-border shadow-lg shadow-black/20">
+      <div className="glass mb-6 rounded-2xl p-5 shadow-lg shadow-black/20">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
@@ -127,7 +127,7 @@ function Home() {
       <div className="mb-6">
         <Link
           to="/stats"
-          className="block rounded-2xl bg-card p-4 ring-1 ring-border transition-transform hover:-translate-y-0.5"
+          className="glass block rounded-2xl p-4 transition-transform hover:-translate-y-0.5"
         >
           <BarChart3 className="mb-2 h-5 w-5 text-gold" />
           <div className="text-sm font-semibold">Statistics</div>

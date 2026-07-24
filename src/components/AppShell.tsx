@@ -4,7 +4,7 @@ import { BottomNav } from "./BottomNav";
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative min-h-screen">
-      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--primary)_35%,transparent),transparent_60%)]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--primary)_38%,transparent),transparent_66%)]" />
       <div className="mx-auto w-full max-w-2xl px-4 pt-6 pb-32">{children}</div>
       <BottomNav />
     </div>
