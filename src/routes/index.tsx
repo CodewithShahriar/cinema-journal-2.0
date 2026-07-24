@@ -67,7 +67,7 @@ function Home() {
     <AppShell>
       <header className="mb-4 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/30 ring-1 ring-white/10">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none bg-black/30 ring-1 ring-white/10">
             <img
               src="/cinejournal.jpg"
               alt="CineJournal logo"
