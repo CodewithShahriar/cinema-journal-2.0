@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
-import { Moon, Sun, Download, Upload, Trash2, Palette } from "lucide-react";
+import { Moon, Sun, Download, Upload, Trash2, Palette, LogOut, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useMovies, loadTheme, saveTheme, loadAccent, saveAccent } from "@/lib/movies-store";
@@ -11,6 +11,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { TrackedMovie } from "@/lib/movie-types";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { getCurrentUser, signInWithEmail, signOut, signUpWithEmail } from "@/lib/supabase-auth";
+import type { User } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -27,9 +30,19 @@ function SettingsPage() {
   const { movies, replaceAll, clearAll } = useMovies();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [accent, setAccent] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setTheme(loadTheme()); setAccent(loadAccent()); }, []);
+  useEffect(() => {
+    setTheme(loadTheme());
+    setAccent(loadAccent());
+    if (isSupabaseConfigured) {
+      void getCurrentUser().then(setUser).catch(() => setUser(null));
+    }
+  }, []);
 
   const toggleTheme = (dark: boolean) => {
     const t = dark ? "dark" : "light";
@@ -56,6 +69,58 @@ function SettingsPage() {
       } catch { toast.error("Invalid file"); }
     };
     r.readAsText(file);
+  };
+
+  const finishAuthentication = () => {
+    // Reloading reinitializes the movie provider with the newly authenticated user's collection.
+    window.location.reload();
+  };
+
+  const signIn = async () => {
+    if (!email.trim() || password.length < 6) {
+      toast.error("Enter an email and a password with at least 6 characters.");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      await signInWithEmail(email.trim(), password);
+      finishAuthentication();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not sign in.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const signUp = async () => {
+    if (!email.trim() || password.length < 6) {
+      toast.error("Enter an email and a password with at least 6 characters.");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const data = await signUpWithEmail(email.trim(), password);
+      if (data.session) finishAuthentication();
+      else toast.success("Account created. Check your email to confirm it, then sign in.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create your account.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const logOut = async () => {
+    setAuthBusy(true);
+    try {
+      // Do not leave this account's private collection in the browser for the next visitor.
+      localStorage.removeItem("cinejournal.movies.v2");
+      await signOut();
+      finishAuthentication();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not sign out.");
+    } finally {
+      setAuthBusy(false);
+    }
   };
 
   return (
@@ -89,6 +154,36 @@ function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {isSupabaseConfigured && (
+        <section className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
+          <h3 className="mb-1 text-sm font-semibold">Account & sync</h3>
+          {user?.email ? (
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">Signed in as {user.email}. Your movies sync across devices.</p>
+              <Button variant="outline" className="w-full justify-start" onClick={() => void logOut()} disabled={authBusy}>
+                <LogOut className="mr-2 h-4 w-4" />Sign out
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Create an account to keep your journal when you change device.</p>
+              <input
+                type="email" value={email} onChange={(event) => setEmail(event.target.value)}
+                placeholder="Email address" autoComplete="email" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="password" value={password} onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password (at least 6 characters)" autoComplete="current-password" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => void signIn()} disabled={authBusy}>Sign in</Button>
+                <Button onClick={() => void signUp()} disabled={authBusy}><UserRound className="mr-2 h-4 w-4" />Create account</Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
         <h3 className="mb-4 text-sm font-semibold">Data</h3>

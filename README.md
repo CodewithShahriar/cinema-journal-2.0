@@ -39,8 +39,18 @@ Key implementation notes:
 The only required runtime environment variable for TMDB integration is:
 
 - `TMDB_READ_TOKEN` — TMDB Read Access Token (v4). The server uses this token as a Bearer token in the `Authorization` header.
+- `VITE_SUPABASE_URL` — Supabase Project URL, used by the browser client.
+- `VITE_SUPABASE_PUBLISHABLE_KEY` — Supabase publishable key (the legacy `anon` key also works).
 
 Important: Do not commit tokens to the repository. Add them in your host's environment variable settings (Vercel, Netlify, Render, etc.).
+
+### Supabase database setup
+
+1. In Supabase Dashboard, open **Authentication → Providers → Anonymous** and enable it.
+2. Open **SQL Editor**, paste and run [`supabase/migrations/20260724_create_movies.sql`](supabase/migrations/20260724_create_movies.sql).
+3. Add the two `VITE_SUPABASE_*` variables above to your deployment environment, then redeploy.
+
+The app creates a private anonymous account for a new visitor and syncs that visitor's movie collection to Supabase. Anonymous accounts are browser-specific; adding regular email or OAuth login later is necessary if users should restore the same collection on a new device.
 ## Local Development
 
 This section is for developers. If you're a non-technical user, ask the maintainer to provide a preview link.

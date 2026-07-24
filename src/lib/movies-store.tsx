@@ -1,6 +1,13 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import type { TrackedMovie } from "./movie-types";
 import type { TmdbMovie } from "./tmdb-types";
+import {
+  deleteMovieFromSupabase,
+  getSupabaseUser,
+  loadMoviesFromSupabase,
+  saveMoviesToSupabase,
+} from "./supabase-movies";
+import { isSupabaseConfigured } from "./supabase";
 
 const STORAGE_KEY = "cinejournal.movies.v2";
 const THEME_KEY = "cinejournal.theme";
@@ -39,6 +46,8 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 export function MoviesProvider({ children }: { children: ReactNode }) {
   const [movies, setMovies] = useState<TrackedMovie[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [cloudReady, setCloudReady] = useState(false);
+  const syncedMovieIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     try {
@@ -56,6 +65,60 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(movies));
   }, [movies, hydrated]);
+
+  // Prefer the user's cloud collection. On their first cloud visit, migrate
+  // the existing browser collection so no previously saved movies are lost.
+  useEffect(() => {
+    if (!hydrated || !isSupabaseConfigured) return;
+    let cancelled = false;
+
+    const connect = async () => {
+      try {
+        const user = await getSupabaseUser();
+        if (!user || cancelled) return;
+
+        const cloudMovies = await loadMoviesFromSupabase();
+        if (cancelled) return;
+
+        if (cloudMovies.length) {
+          syncedMovieIds.current = new Set(cloudMovies.map((movie) => movie.id));
+          setMovies(cloudMovies);
+        } else if (movies.length) {
+          await saveMoviesToSupabase(movies);
+          syncedMovieIds.current = new Set(movies.map((movie) => movie.id));
+        }
+        if (!cancelled) setCloudReady(true);
+      } catch (error) {
+        // Local storage remains the offline fallback if Supabase is unavailable.
+        console.warn("Supabase sync is unavailable; using local storage.", error);
+      }
+    };
+
+    void connect();
+    return () => {
+      cancelled = true;
+    };
+    // Run once after browser storage has been read. Cloud writes below handle changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!cloudReady) return;
+
+    const sync = async () => {
+      try {
+        const nextIds = new Set(movies.map((movie) => movie.id));
+        const removedIds = [...syncedMovieIds.current].filter((id) => !nextIds.has(id));
+        await saveMoviesToSupabase(movies);
+        await Promise.all(removedIds.map(deleteMovieFromSupabase));
+        syncedMovieIds.current = nextIds;
+      } catch (error) {
+        console.warn("Could not save movie changes to Supabase.", error);
+      }
+    };
+
+    void sync();
+  }, [movies, cloudReady]);
 
   const hasTmdb = useCallback(
     (tmdbId: number) => movies.some((m) => m.tmdbId === tmdbId),
