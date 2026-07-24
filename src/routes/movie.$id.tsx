@@ -177,7 +177,7 @@ function MovieDetail() {
                   markWatched(movie.id);
                   toast.success("Marked as watched");
                 }}
-                className="col-span-2 gradient-primary text-white"
+                className="col-span-2 gradient-primary text-primary-foreground"
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Mark as Watched

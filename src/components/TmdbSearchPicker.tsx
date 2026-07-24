@@ -23,7 +23,7 @@ const TMDB_GENRES: Record<number, string> = {
   10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western",
 };
 
-export function TmdbSearchPicker() {
+export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<TmdbSearchResult | null>(null);
   const [status, setStatus] = useState<"watchlist" | "watched">("watchlist");
@@ -99,7 +99,7 @@ export function TmdbSearchPicker() {
         </p>
       )}
 
-      {q.trim().length < 2 && (
+      {!compact && q.trim().length < 2 && (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           Type at least 2 characters to search TMDB.
         </p>
@@ -249,7 +249,7 @@ export function TmdbSearchPicker() {
           <Button
             type="button"
             onClick={handleAdd}
-            className="w-full rounded-xl py-6 text-base font-semibold gradient-primary text-white"
+            className="w-full rounded-xl py-6 text-base font-semibold gradient-primary text-primary-foreground"
           >
             {status === "watched" ? (
               <CheckCircle2 className="mr-2 h-5 w-5" />

@@ -44,8 +44,9 @@
   --card-foreground: rgb(245 245 245);
   --popover: rgb(24 24 24);
   --popover-foreground: rgb(245 245 245);
-  --primary: rgb(226 182 22);
-  --primary-foreground: rgb(20 20 20);
+  /* IMDb's signature yellow. Keep text on yellow surfaces near-black. */
+  --primary: rgb(245 197 24);
+  --primary-foreground: rgb(16 16 16);
   --secondary: rgb(42 42 42);
   --secondary-foreground: rgb(245 245 245);
   --muted: rgb(37 37 37);
@@ -56,13 +57,13 @@
   --destructive-foreground: oklch(0.98 0.01 60);
   --border: rgb(67 67 67 / 70%);
   --input: rgb(42 42 42);
-  --ring: rgb(226 182 22);
-  --gold: rgb(226 182 22);
-  --chart-1: rgb(226 182 22);
-  --chart-2: rgb(192 154 19);
-  --chart-3: rgb(157 126 16);
-  --chart-4: rgb(121 97 12);
-  --chart-5: rgb(86 69 9);
+  --ring: rgb(245 197 24);
+  --gold: rgb(245 197 24);
+  --chart-1: rgb(245 197 24);
+  --chart-2: rgb(209 166 19);
+  --chart-3: rgb(173 137 15);
+  --chart-4: rgb(137 108 12);
+  --chart-5: rgb(99 78 8);
 }
 
 @layer base {

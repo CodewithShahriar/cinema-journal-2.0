@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Film, Bookmark, CheckCircle2, Heart, Star, Plus, BarChart3, TrendingUp } from "lucide-react";
+import { Film, Bookmark, CheckCircle2, Heart, Star, BarChart3, TrendingUp } from "lucide-react";
 import { useMovies } from "@/lib/movies-store";
 import { AppShell } from "@/components/AppShell";
 import { MovieCard, EmptyState } from "@/components/MovieCard";
 import { Progress } from "@/components/ui/progress";
+import { TmdbSearchPicker } from "@/components/TmdbSearchPicker";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -64,10 +65,10 @@ function Home() {
 
   return (
     <AppShell>
-      <header className="mb-6 flex items-start justify-between gap-3">
+      <header className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md gradient-primary text-white">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md gradient-primary text-primary-foreground">
               <Film className="h-3.5 w-3.5" />
             </span>
             Cinema-Journal
@@ -77,14 +78,11 @@ function Home() {
           </h1> */}
           <p className="mt-1 text-sm text-muted-foreground">Track, rate & remember every film.</p>
         </div>
-        <Link
-          to="/add"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full gradient-primary text-white shadow-lg shadow-primary/40 transition-transform hover:scale-105"
-          aria-label="Add movie"
-        >
-          <Plus className="h-5 w-5" />
-        </Link>
       </header>
+
+      <div className="mb-6 rounded-2xl bg-card p-3 ring-1 ring-border shadow-lg shadow-black/20">
+        <TmdbSearchPicker compact />
+      </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3">
         <Stat icon={Film} label="Total movies" value={total} />
@@ -126,18 +124,10 @@ function Home() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <Link
-          to="/add"
-          className="rounded-2xl gradient-primary p-4 text-white shadow-lg shadow-primary/30 transition-transform hover:-translate-y-0.5"
-        >
-          <Plus className="mb-2 h-5 w-5" />
-          <div className="text-sm font-semibold">Add Movie</div>
-          <div className="text-xs opacity-80">Search TMDB</div>
-        </Link>
+      <div className="mb-6">
         <Link
           to="/stats"
-          className="rounded-2xl bg-card p-4 ring-1 ring-border transition-transform hover:-translate-y-0.5"
+          className="block rounded-2xl bg-card p-4 ring-1 ring-border transition-transform hover:-translate-y-0.5"
         >
           <BarChart3 className="mb-2 h-5 w-5 text-gold" />
           <div className="text-sm font-semibold">Statistics</div>

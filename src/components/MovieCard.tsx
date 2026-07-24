@@ -12,7 +12,7 @@ export function PosterFallback({ title }: { title: string }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="flex h-full w-full items-center justify-center gradient-primary text-3xl font-black text-white/90">
+    <div className="flex h-full w-full items-center justify-center gradient-primary text-3xl font-black text-primary-foreground">
       {initials || "?"}
     </div>
   );
@@ -116,7 +116,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border py-16 text-center animate-fade-in">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary text-white shadow-lg">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary text-primary-foreground shadow-lg">
         <Icon className="h-8 w-8" />
       </div>
       <p className="font-semibold">{title}</p>
