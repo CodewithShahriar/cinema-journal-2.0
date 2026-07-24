@@ -7,12 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { MoviesProvider, loadTheme, loadAccent } from "../lib/movies-store";
+import { MoviesProvider } from "../lib/movies-store";
 
 function NotFoundComponent() {
   return (
@@ -66,7 +66,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#1a0f0f" },
+      { name: "theme-color", content: "#0f0f0f" },
       { title: "CineJournal — Your personal movie tracker" },
       { name: "description", content: "A beautiful, private movie journal. Track your watchlist, rate what you watched, and keep your cinema memories." },
       { name: "author", content: "CineJournal" },
@@ -103,22 +103,11 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function ThemeInit() {
-  useEffect(() => {
-    const t = loadTheme();
-    document.documentElement.classList.toggle("light", t === "light");
-    const accent = loadAccent();
-    if (accent) document.documentElement.style.setProperty("--primary", accent);
-  }, []);
-  return null;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
       <MoviesProvider>
-        <ThemeInit />
         <Outlet />
         <Toaster theme="dark" position="top-center" richColors closeButton />
       </MoviesProvider>

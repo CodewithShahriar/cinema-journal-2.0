@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
-import { Moon, Sun, Download, Upload, Trash2, Palette, LogOut, UserRound } from "lucide-react";
+import { Download, Upload, Trash2, LogOut, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { useMovies, loadTheme, saveTheme, loadAccent, saveAccent } from "@/lib/movies-store";
+import { useMovies } from "@/lib/movies-store";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -17,19 +16,8 @@ import type { User } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
-const ACCENTS: { name: string; value: string; hex: string }[] = [
-  { name: "Ruby", value: "oklch(0.62 0.22 25)", hex: "#e63946" },
-  { name: "Gold", value: "oklch(0.78 0.16 85)", hex: "#e8b84a" },
-  { name: "Ocean", value: "oklch(0.62 0.16 230)", hex: "#3b82f6" },
-  { name: "Emerald", value: "oklch(0.68 0.16 155)", hex: "#10b981" },
-  { name: "Violet", value: "oklch(0.6 0.22 300)", hex: "#a855f7" },
-  { name: "Rose", value: "oklch(0.68 0.2 355)", hex: "#f43f5e" },
-];
-
 function SettingsPage() {
   const { movies, replaceAll, clearAll } = useMovies();
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [accent, setAccent] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,17 +25,10 @@ function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTheme(loadTheme());
-    setAccent(loadAccent());
     if (isSupabaseConfigured) {
       void getCurrentUser().then(setUser).catch(() => setUser(null));
     }
   }, []);
-
-  const toggleTheme = (dark: boolean) => {
-    const t = dark ? "dark" : "light";
-    setTheme(t); saveTheme(t);
-  };
 
   const exportData = () => {
     const blob = new Blob([JSON.stringify(movies, null, 2)], { type: "application/json" });
@@ -126,34 +107,6 @@ function SettingsPage() {
   return (
     <AppShell>
       <PageHeader title="Settings" subtitle="Customize your journal" />
-
-      <section className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
-        <h3 className="mb-4 text-sm font-semibold">Appearance</h3>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            <div>
-              <div className="text-sm font-medium">Dark mode</div>
-              <div className="text-xs text-muted-foreground">Cinematic dark theme</div>
-            </div>
-          </div>
-          <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
-        </div>
-        <div className="mt-6">
-          <div className="mb-3 flex items-center gap-2"><Palette className="h-4 w-4" /><span className="text-sm font-medium">Accent color</span></div>
-          <div className="grid grid-cols-6 gap-2">
-            {ACCENTS.map((a) => (
-              <button
-                key={a.name}
-                onClick={() => { setAccent(a.value); saveAccent(a.value); toast(`Accent: ${a.name}`); }}
-                className={`aspect-square rounded-xl transition-transform hover:scale-110 ${accent === a.value ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
-                style={{ background: a.hex }}
-                aria-label={a.name}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {isSupabaseConfigured && (
         <section className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">

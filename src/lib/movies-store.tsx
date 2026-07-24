@@ -10,8 +10,6 @@ import {
 import { isSupabaseConfigured } from "./supabase";
 
 const STORAGE_KEY = "cinejournal.movies.v2";
-const THEME_KEY = "cinejournal.theme";
-const ACCENT_KEY = "cinejournal.accent";
 
 export interface AddByTmdbInput {
   tmdbId: number;
@@ -259,23 +257,4 @@ export function useMovies() {
   const ctx = useContext(MoviesContext);
   if (!ctx) throw new Error("useMovies must be used within MoviesProvider");
   return ctx;
-}
-
-// Theme helpers (unchanged)
-export function loadTheme(): "dark" | "light" {
-  if (typeof window === "undefined") return "dark";
-  return (localStorage.getItem(THEME_KEY) as "dark" | "light") || "dark";
-}
-export function saveTheme(t: "dark" | "light") {
-  localStorage.setItem(THEME_KEY, t);
-  document.documentElement.classList.toggle("light", t === "light");
-}
-export function loadAccent(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem(ACCENT_KEY) || "";
-}
-export function saveAccent(oklchValue: string) {
-  localStorage.setItem(ACCENT_KEY, oklchValue);
-  if (oklchValue) document.documentElement.style.setProperty("--primary", oklchValue);
-  else document.documentElement.style.removeProperty("--primary");
 }
