@@ -69,14 +69,14 @@ function Home() {
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none bg-black/30 ring-1 ring-white/10">
             <img
-              src="/cinejournal.jpg"
+              src="/cinemacity.jpg"
               alt="CineJournal logo"
               className="h-full w-full scale-[1.55] -translate-y-2 object-cover mix-blend-screen"
             />
           </div>
           <div className="min-w-0 space-y-1">
             <h1 className="font-display truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Cine-Journal
+              Cinema City
             </h1>
             <p className="text-sm text-muted-foreground">Track, rate & remember every film.</p>
           </div>
