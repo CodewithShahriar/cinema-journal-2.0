@@ -1,0 +1,17 @@
+{
+  "name": "Cine_Journal",
+  "short_name": "Cine_Journal",
+  "description": "Your private movie journal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0c0e",
+  "theme_color": "#141414",
+  "icons": [
+    {
+      "src": "/cinejournal.jpg",
+      "sizes": "648x648",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

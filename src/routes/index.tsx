@@ -66,17 +66,18 @@ function Home() {
   return (
     <AppShell>
       <header className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md gradient-primary text-primary-foreground">
-              <Film className="h-3.5 w-3.5" />
-            </span>
-            Cinema-Journal
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/30 ring-1 ring-white/10">
+            <img
+              src="/cinejournal.jpg"
+              alt="CineJournal logo"
+              className="h-full w-full scale-[1.55] -translate-y-2 object-cover mix-blend-screen"
+            />
           </div>
-          {/* <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
-            
-          </h1> */}
-          <p className="mt-1 text-sm text-muted-foreground">Track, rate & remember every film.</p>
+          <div className="min-w-0">
+            <h1 className="font-display truncate text-2xl font-semibold tracking-tight text-foreground">Cine-Journal</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Track, rate & remember every film.</p>
+          </div>
         </div>
       </header>
 
