@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import type { TrackedMovie } from "./movie-types";
 import type { TmdbMovie } from "./tmdb-types";
 import {
@@ -7,9 +15,12 @@ import {
   loadMoviesFromSupabase,
   saveMoviesToSupabase,
 } from "./supabase-movies";
-import { isSupabaseConfigured } from "./supabase";
+import { supabase, isSupabaseConfigured } from "./supabase";
 
 const STORAGE_KEY = "cinejournal.movies.v2";
+const BACKUP_KEY = "cinejournal.movies.backup";
+
+export type SyncStatus = "idle" | "syncing" | "synced" | "offline" | "error";
 
 export interface AddByTmdbInput {
   tmdbId: number;
@@ -22,9 +33,12 @@ export interface AddByTmdbInput {
   cached?: TmdbMovie;
 }
 
-interface Ctx {
+interface MoviesContextType {
   movies: TrackedMovie[];
   hydrated: boolean;
+  syncStatus: SyncStatus;
+  lastSyncedAt: Date | null;
+  syncNow: () => Promise<void>;
   addByTmdb: (input: AddByTmdbInput) => { movie: TrackedMovie; duplicate: boolean };
   updateMovie: (id: string, patch: Partial<TrackedMovie>) => void;
   deleteMovie: (id: string) => void;
@@ -38,95 +52,226 @@ interface Ctx {
   clearAll: () => void;
 }
 
-const MoviesContext = createContext<Ctx | null>(null);
+const MoviesContext = createContext<MoviesContextType | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+/**
+ * Intelligent merger that unites local and cloud movie lists without losing any items.
+ * If conflicts exist for the same movie ID or tmdbId, the most recently updated version wins.
+ */
+export function mergeMovieLists(local: TrackedMovie[], cloud: TrackedMovie[]): TrackedMovie[] {
+  const map = new Map<string, TrackedMovie>();
+  const tmdbMap = new Map<number, string>(); // tmdbId -> movie.id
+
+  // 1. Populate all cloud movies
+  for (const item of cloud) {
+    if (!item?.id) continue;
+    map.set(item.id, item);
+    if (item.tmdbId) tmdbMap.set(item.tmdbId, item.id);
+  }
+
+  // 2. Safely merge local movies without dropping any
+  for (const localMovie of local) {
+    if (!localMovie?.id) continue;
+
+    const existingId = map.has(localMovie.id) ? localMovie.id : tmdbMap.get(localMovie.tmdbId);
+
+    if (!existingId) {
+      // Local movie does not exist in cloud -> keep it!
+      map.set(localMovie.id, localMovie);
+      if (localMovie.tmdbId) tmdbMap.set(localMovie.tmdbId, localMovie.id);
+    } else {
+      const cloudMovie = map.get(existingId)!;
+      const localTime = new Date(localMovie.updatedAt || localMovie.createdAt || 0).getTime();
+      const cloudTime = new Date(cloudMovie.updatedAt || cloudMovie.createdAt || 0).getTime();
+
+      // If local version has newer updates, prioritize local content
+      if (localTime >= cloudTime) {
+        map.set(existingId, {
+          ...cloudMovie,
+          ...localMovie,
+          id: existingId,
+        });
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    const tA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const tB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return tB - tA;
+  });
+}
 
 export function MoviesProvider({ children }: { children: ReactNode }) {
   const [movies, setMovies] = useState<TrackedMovie[]>([]);
   const [hydrated, setHydrated] = useState(false);
-  const [cloudReady, setCloudReady] = useState(false);
-  const syncedMovieIds = useRef<Set<string>>(new Set());
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
+  const syncedMovieIds = useRef<Set<string>>(new Set());
+  const currentUserId = useRef<string | null>(null);
+  const isSyncingRef = useRef(false);
+
+  // 1. Initial hydration from primary localStorage, fallback to backup if corrupted
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as TrackedMovie[];
-        if (Array.isArray(parsed)) setMovies(parsed);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMovies(parsed);
+          setHydrated(true);
+          return;
+        }
       }
-    } catch {
-      /* ignore corrupt storage */
+
+      // Check backup key if primary is empty or missing
+      const backupRaw = localStorage.getItem(BACKUP_KEY);
+      if (backupRaw) {
+        const backupParsed = JSON.parse(backupRaw);
+        if (Array.isArray(backupParsed) && backupParsed.length > 0) {
+          setMovies(backupParsed);
+          localStorage.setItem(STORAGE_KEY, backupRaw);
+        }
+      }
+    } catch (e) {
+      console.warn("Storage hydration error; attempting recovery", e);
     }
     setHydrated(true);
   }, []);
 
+  // 2. Persist local changes instantly to storage and backup
   useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(movies));
+    if (!hydrated) return;
+    try {
+      const serialized = JSON.stringify(movies);
+      localStorage.setItem(STORAGE_KEY, serialized);
+      if (movies.length > 0) {
+        localStorage.setItem(BACKUP_KEY, serialized);
+      }
+    } catch (e) {
+      console.warn("Could not save to localStorage", e);
+    }
   }, [movies, hydrated]);
 
-  // Prefer the user's cloud collection. On their first cloud visit, migrate
-  // the existing browser collection so no previously saved movies are lost.
-  useEffect(() => {
-    if (!hydrated || !isSupabaseConfigured) return;
-    let cancelled = false;
+  // 3. Robust Cloud Sync Logic
+  const performSync = useCallback(
+    async (localList: TrackedMovie[]) => {
+      if (!isSupabaseConfigured || isSyncingRef.current) return;
+      isSyncingRef.current = true;
+      setSyncStatus("syncing");
 
-    const connect = async () => {
       try {
         const user = await getSupabaseUser();
-        if (!user || cancelled) return;
+        currentUserId.current = user?.id || null;
+
+        if (!user) {
+          setSyncStatus("offline");
+          isSyncingRef.current = false;
+          return;
+        }
 
         const cloudMovies = await loadMoviesFromSupabase();
-        if (cancelled) return;
 
-        if (cloudMovies.length) {
-          syncedMovieIds.current = new Set(cloudMovies.map((movie) => movie.id));
-          setMovies(cloudMovies);
-        } else if (movies.length) {
-          await saveMoviesToSupabase(movies);
-          syncedMovieIds.current = new Set(movies.map((movie) => movie.id));
+        // Intelligently merge local and cloud records
+        const merged = mergeMovieLists(localList, cloudMovies);
+
+        // Update local state if merged list differs
+        const mergedIds = merged.map((m) => m.id).join(",");
+        const localIds = localList.map((m) => m.id).join(",");
+        if (mergedIds !== localIds || merged.length !== localList.length) {
+          setMovies(merged);
         }
-        if (!cancelled) setCloudReady(true);
-      } catch (error) {
-        // Local storage remains the offline fallback if Supabase is unavailable.
-        console.warn("Supabase sync is unavailable; using local storage.", error);
-      }
-    };
 
-    void connect();
-    return () => {
-      cancelled = true;
-    };
-    // Run once after browser storage has been read. Cloud writes below handle changes.
+        // Save any un-synced items to cloud
+        await saveMoviesToSupabase(merged, user.id);
+        syncedMovieIds.current = new Set(merged.map((m) => m.id));
+
+        setLastSyncedAt(new Date());
+        setSyncStatus("synced");
+      } catch (err) {
+        console.warn("Sync failed; running in offline resilient mode:", err);
+        setSyncStatus("offline");
+      } finally {
+        isSyncingRef.current = false;
+      }
+    },
+    [],
+  );
+
+  // Sync on initial hydration
+  useEffect(() => {
+    if (!hydrated) return;
+    void performSync(movies);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
+  // Listen to Supabase Auth State changes (Login, Logout, Token Refresh)
   useEffect(() => {
-    if (!cloudReady) return;
+    if (!supabase) return;
 
-    const sync = async () => {
-      try {
-        const nextIds = new Set(movies.map((movie) => movie.id));
-        const removedIds = [...syncedMovieIds.current].filter((id) => !nextIds.has(id));
-        await saveMoviesToSupabase(movies);
-        await Promise.all(removedIds.map(deleteMovieFromSupabase));
-        syncedMovieIds.current = nextIds;
-      } catch (error) {
-        console.warn("Could not save movie changes to Supabase.", error);
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        const newUserId = session?.user?.id || null;
+        if (newUserId !== currentUserId.current) {
+          currentUserId.current = newUserId;
+          // Re-sync with the freshly authenticated user, merging existing local movies into their account!
+          setMovies((currentMovies) => {
+            void performSync(currentMovies);
+            return currentMovies;
+          });
+        }
+      } else if (event === "SIGNED_OUT") {
+        currentUserId.current = null;
+        setSyncStatus("offline");
       }
-    };
+    });
 
-    void sync();
-  }, [movies, cloudReady]);
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [performSync]);
+
+  // Auto-sync movie changes to cloud with debouncing
+  useEffect(() => {
+    if (!hydrated || !isSupabaseConfigured || syncStatus === "offline" && !currentUserId.current) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (currentUserId.current) {
+        void (async () => {
+          try {
+            setSyncStatus("syncing");
+            await saveMoviesToSupabase(movies, currentUserId.current);
+            syncedMovieIds.current = new Set(movies.map((m) => m.id));
+            setLastSyncedAt(new Date());
+            setSyncStatus("synced");
+          } catch {
+            setSyncStatus("offline");
+          }
+        })();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [movies, hydrated, syncStatus]);
+
+  const syncNow = useCallback(async () => {
+    await performSync(movies);
+  }, [performSync, movies]);
 
   const hasTmdb = useCallback(
     (tmdbId: number) => movies.some((m) => m.tmdbId === tmdbId),
     [movies],
   );
 
-  const addByTmdb: Ctx["addByTmdb"] = useCallback((input) => {
+  const addByTmdb: MoviesContextType["addByTmdb"] = useCallback((input) => {
     const now = new Date().toISOString();
     let duplicate = false;
     let result: TrackedMovie | null = null;
+
     setMovies((prev) => {
       const existing = prev.find((m) => m.tmdbId === input.tmdbId);
       if (existing) {
@@ -151,20 +296,28 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
       result = movie;
       return [movie, ...prev];
     });
+
     return { movie: result as unknown as TrackedMovie, duplicate };
   }, []);
 
-  const updateMovie: Ctx["updateMovie"] = useCallback((id, patch) => {
+  const updateMovie: MoviesContextType["updateMovie"] = useCallback((id, patch) => {
     setMovies((prev) =>
       prev.map((m) => (m.id === id ? { ...m, ...patch, updatedAt: new Date().toISOString() } : m)),
     );
   }, []);
 
-  const deleteMovie: Ctx["deleteMovie"] = useCallback((id) => {
-    setMovies((prev) => prev.filter((m) => m.id !== id));
+  const deleteMovie: MoviesContextType["deleteMovie"] = useCallback((id) => {
+    setMovies((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      syncedMovieIds.current.delete(id);
+      void deleteMovieFromSupabase(id).catch((err) =>
+        console.warn("Could not delete from Supabase:", err),
+      );
+      return next;
+    });
   }, []);
 
-  const toggleFavorite: Ctx["toggleFavorite"] = useCallback((id) => {
+  const toggleFavorite: MoviesContextType["toggleFavorite"] = useCallback((id) => {
     setMovies((prev) =>
       prev.map((m) =>
         m.id === id ? { ...m, favorite: !m.favorite, updatedAt: new Date().toISOString() } : m,
@@ -172,7 +325,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const markWatched: Ctx["markWatched"] = useCallback((id, rating) => {
+  const markWatched: MoviesContextType["markWatched"] = useCallback((id, rating) => {
     setMovies((prev) =>
       prev.map((m) =>
         m.id === id
@@ -188,7 +341,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const moveToWatchlist: Ctx["moveToWatchlist"] = useCallback((id) => {
+  const moveToWatchlist: MoviesContextType["moveToWatchlist"] = useCallback((id) => {
     setMovies((prev) =>
       prev.map((m) =>
         m.id === id
@@ -198,7 +351,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const incrementRewatch: Ctx["incrementRewatch"] = useCallback((id) => {
+  const incrementRewatch: MoviesContextType["incrementRewatch"] = useCallback((id) => {
     setMovies((prev) =>
       prev.map((m) =>
         m.id === id
@@ -213,12 +366,11 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const updateCached: Ctx["updateCached"] = useCallback((tmdbId, cached) => {
+  const updateCached: MoviesContextType["updateCached"] = useCallback((tmdbId, cached) => {
     setMovies((prev) => {
       let changed = false;
       const next = prev.map((m) => {
         if (m.tmdbId !== tmdbId) return m;
-        // Avoid needless writes / render loops.
         if (m.cached && JSON.stringify(m.cached) === JSON.stringify(cached)) return m;
         changed = true;
         return { ...m, cached };
@@ -227,14 +379,28 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const replaceAll: Ctx["replaceAll"] = useCallback((next) => setMovies(next), []);
-  const clearAll = useCallback(() => setMovies([]), []);
+  const replaceAll: MoviesContextType["replaceAll"] = useCallback((next) => {
+    setMovies(next);
+  }, []);
+
+  const clearAll = useCallback(() => {
+    // Preserve emergency backup just in case clearAll was called by accident
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(movies));
+    } catch {
+      // ignore
+    }
+    setMovies([]);
+  }, [movies]);
 
   return (
     <MoviesContext.Provider
       value={{
         movies,
         hydrated,
+        syncStatus,
+        lastSyncedAt,
+        syncNow,
         addByTmdb,
         updateMovie,
         deleteMovie,

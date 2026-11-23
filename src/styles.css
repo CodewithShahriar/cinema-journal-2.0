@@ -10,7 +10,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 14px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -37,71 +37,127 @@
 
 :root {
   --radius: 1rem;
-  /* Netflix-inspired charcoal palette with its signature red. */
-  --background: rgb(12 12 14);
-  --foreground: rgb(245 245 241);
-  --card: rgb(31 31 34 / 74%);
-  --card-foreground: rgb(245 245 245);
-  --popover: rgb(28 28 31 / 88%);
-  --popover-foreground: rgb(245 245 245);
+  /* Ultra-sleek Netflix-inspired Obsidian & Crimson Cinema Palette */
+  --background: rgb(8 8 10);
+  --foreground: rgb(246 246 248);
+  --card: rgb(20 20 24 / 78%);
+  --card-foreground: rgb(248 248 250);
+  --popover: rgb(18 18 22 / 92%);
+  --popover-foreground: rgb(248 248 250);
   --primary: rgb(229 9 20);
   --primary-foreground: rgb(255 255 255);
-  --secondary: rgb(48 48 48);
+  --secondary: rgb(34 34 38);
   --secondary-foreground: rgb(245 245 245);
-  --muted: rgb(37 37 37);
-  --muted-foreground: rgb(166 166 166);
-  --accent: rgb(48 48 48);
-  --accent-foreground: rgb(245 245 245);
-  --destructive: oklch(0.6 0.24 27);
-  --destructive-foreground: oklch(0.98 0.01 60);
-  --border: rgb(67 67 67 / 70%);
-  --input: rgb(42 42 42);
+  --muted: rgb(28 28 32);
+  --muted-foreground: rgb(160 160 168);
+  --accent: rgb(38 38 44);
+  --accent-foreground: rgb(255 255 255);
+  --destructive: rgb(239 68 68);
+  --destructive-foreground: rgb(255 255 255);
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(30 30 36);
   --ring: rgb(229 9 20);
-  --gold: rgb(229 9 20);
+  --gold: rgb(245 158 11);
   --chart-1: rgb(229 9 20);
-  --chart-2: rgb(190 12 22);
-  --chart-3: rgb(151 14 23);
-  --chart-4: rgb(111 14 22);
-  --chart-5: rgb(71 12 17);
+  --chart-2: rgb(185 28 28);
+  --chart-3: rgb(234 88 12);
+  --chart-4: rgb(245 158 11);
+  --chart-5: rgb(127 29 29);
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
   }
   body {
     min-height: 100vh;
     background-image:
-      radial-gradient(ellipse 85% 54% at 50% -16%, rgb(229 9 20 / 42%), transparent 68%),
-      radial-gradient(ellipse 65% 38% at 102% 48%, rgb(134 0 9 / 22%), transparent 72%),
-      linear-gradient(180deg, rgb(30 9 12) 0%, rgb(12 12 14) 42%, rgb(10 10 12) 100%);
+      radial-gradient(ellipse 90% 50% at 50% -12%, rgb(229 9 20 / 32%), transparent 65%),
+      radial-gradient(circle at 100% 30%, rgb(180 10 20 / 12%), transparent 50%),
+      radial-gradient(circle at 0% 70%, rgb(120 0 10 / 10%), transparent 40%),
+      linear-gradient(180deg, rgb(16 6 8) 0%, rgb(8 8 10) 35%, rgb(6 6 8) 100%);
     background-attachment: fixed;
   }
-  :where(.bg-card) {
-    backdrop-filter: blur(18px) saturate(130%);
-    -webkit-backdrop-filter: blur(18px) saturate(130%);
-    box-shadow: 0 18px 44px rgb(0 0 0 / 24%);
+
+  /* Custom sleek scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgb(12 12 14);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(40 40 46);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(229 9 20 / 70%);
   }
 }
 
 @utility glass {
-  background: rgb(32 32 35 / 76%);
-  backdrop-filter: blur(20px) saturate(140%);
+  background: rgb(22 22 26 / 82%);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid rgb(255 255 255 / 10%);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 36%);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+}
+
+@utility glass-card {
+  background: rgb(20 20 24 / 74%);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  box-shadow: 0 12px 32px -4px rgb(0 0 0 / 50%);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    border-color: rgb(229 9 20 / 40%);
+    box-shadow: 0 20px 48px -8px rgb(229 9 20 / 25%), 0 0 0 1px rgb(229 9 20 / 30%);
+  }
+}
+
+@utility glow-red {
+  box-shadow: 0 0 35px -5px rgb(229 9 20 / 45%);
+}
+
+@utility glow-red-sm {
+  box-shadow: 0 0 20px -3px rgb(229 9 20 / 35%);
 }
 
 @utility gradient-primary {
-  background-image: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--gold) 60%, var(--primary)));
+  background-image: linear-gradient(135deg, rgb(229 9 20) 0%, rgb(180 10 20) 100%);
+}
+
+@utility gradient-cinema-hero {
+  background: linear-gradient(180deg, transparent 0%, rgb(8 8 10 / 80%) 65%, rgb(8 8 10) 100%);
 }
 
 @utility text-gold {
   color: var(--gold);
+}
+
+@utility animate-reveal-card {
+  animation: revealCard 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes revealCard {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

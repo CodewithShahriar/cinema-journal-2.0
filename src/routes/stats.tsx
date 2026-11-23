@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Star, Film, Clock } from "lucide-react";
+import { ArrowLeft, Star, Film, Clock, BarChart3, TrendingUp, Trophy, Calendar } from "lucide-react";
 import { useMemo } from "react";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, PageHeader } from "@/components/AppShell";
 import { useMovies } from "@/lib/movies-store";
 import { Progress } from "@/components/ui/progress";
 
@@ -9,9 +9,9 @@ export const Route = createFileRoute("/stats")({
   component: StatsPage,
   head: () => ({
     meta: [
-      { title: "Statistics · CineJournal" },
-      { name: "description", content: "Insights into your cinematic life." },
-      { property: "og:title", content: "Statistics · CineJournal" },
+      { title: "Cinema Analytics & Statistics · CineJournal" },
+      { name: "description", content: "Insights into your cinematic life and movie screening habits." },
+      { property: "og:title", content: "Cinema Analytics · CineJournal" },
       { property: "og:description", content: "Insights into your cinematic life." },
     ],
   }),
@@ -21,9 +21,17 @@ function StatsPage() {
   const { movies } = useMovies();
   const watched = movies.filter((m) => m.status === "watched");
   const total = movies.length;
-  const pct = total ? (watched.length / total) * 100 : 0;
+  const pct = total ? Math.round((watched.length / total) * 100) : 0;
   const totalTime = watched.reduce((s, m) => s + (m.cached?.runtime ?? 0), 0);
   const hours = Math.floor(totalTime / 60);
+  const mins = totalTime % 60;
+
+  const rated = watched.filter((m) => m.personalRating != null);
+  const avg = rated.length
+    ? rated.reduce((s, m) => s + (m.personalRating ?? 0), 0) / rated.length
+    : 0;
+
+  const totalRewatches = watched.reduce((s, m) => s + (m.rewatchCount ?? 0), 0);
 
   const byGenre = useMemo(() => {
     const map = new Map<string, number>();
@@ -43,7 +51,7 @@ function StatsPage() {
   }, [watched]);
 
   const ratingDist = useMemo(() => {
-    const bins = [0, 0, 0, 0, 0]; // 0-2,2-4,4-6,6-8,8-10
+    const bins = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
     watched.forEach((m) => {
       if (m.personalRating == null) return;
       const idx = Math.min(4, Math.floor(m.personalRating / 2));
@@ -62,115 +70,176 @@ function StatsPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <Link to="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-card ring-1 ring-border">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <h1 className="font-display text-2xl font-semibold">Statistics</h1>
+      <PageHeader
+        title="Cinema Analytics"
+        subtitle="Detailed insights into your viewing habits and collection"
+      />
+
+      {/* Top 4 KPI Stat Cards */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="glass-card rounded-2xl p-4 shadow-xl">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
+            <span className="text-xs font-medium">Total Movies</span>
+            <Film className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-2xl font-black text-white">{total}</div>
+          <span className="text-[11px] text-muted-foreground">{watched.length} watched</span>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 shadow-xl">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
+            <span className="text-xs font-medium">Total Screen Time</span>
+            <Clock className="h-4 w-4 text-amber-400" />
+          </div>
+          <div className="text-2xl font-black text-white">{hours}h {mins}m</div>
+          <span className="text-[11px] text-muted-foreground">{totalTime} total minutes</span>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 shadow-xl">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
+            <span className="text-xs font-medium">Average Rating</span>
+            <Star className="h-4 w-4 text-amber-400 fill-current" />
+          </div>
+          <div className="text-2xl font-black text-amber-400">
+            {avg ? `${avg.toFixed(1)} ★` : "—"}
+          </div>
+          <span className="text-[11px] text-muted-foreground">{rated.length} movies rated</span>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 shadow-xl">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
+            <span className="text-xs font-medium">Logged Rewatches</span>
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
+          </div>
+          <div className="text-2xl font-black text-emerald-400">{totalRewatches}×</div>
+          <span className="text-[11px] text-muted-foreground">repeat screenings</span>
+        </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-          <Film className="mb-1 h-4 w-4 text-primary" />
-          <div className="text-xl font-bold">{total}</div>
-          <div className="text-[10px] text-muted-foreground">Total</div>
+      {/* Collection Completion Progress Card */}
+      <div className="glass-card mb-6 rounded-2xl p-5 shadow-xl">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-white">Watchlist Completion</h3>
+          <span className="text-sm font-bold text-primary">{pct}%</span>
         </div>
-        <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-          <div className="mb-1 text-[10px] font-bold text-emerald-400">%</div>
-          <div className="text-xl font-bold">{Math.round(pct)}%</div>
-          <div className="text-[10px] text-muted-foreground">Watched</div>
-        </div>
-        <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-          <Clock className="mb-1 h-4 w-4 text-gold" />
-          <div className="text-xl font-bold">{hours}h</div>
-          <div className="text-[10px] text-muted-foreground">Watch time</div>
-        </div>
-      </div>
-
-      <div className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
-        <h3 className="mb-3 text-sm font-semibold">Collection progress</h3>
-        <Progress value={pct} />
+        <Progress value={pct} className="h-2.5 bg-zinc-800" />
         <p className="mt-2 text-xs text-muted-foreground">
-          {watched.length} of {total} completed
+          {watched.length} of {total} films watched from your journal
         </p>
       </div>
 
-      <div className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <Star className="h-4 w-4 text-gold" />
-          Top rated
-        </h3>
-        {topRated.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No ratings yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {topRated.map((m, i) => (
-              <li key={m.id} className="flex items-center gap-3">
-                <span className="w-4 text-xs font-bold text-muted-foreground">#{i + 1}</span>
-                <Link
-                  to="/movie/$id"
-                  params={{ id: m.id }}
-                  className="flex-1 truncate text-sm hover:text-primary"
-                >
-                  {m.cached?.title ?? "…"}
-                </Link>
-                <span className="text-sm font-semibold text-gold">
-                  {m.personalRating?.toFixed(1)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {/* Grid Dashboard for Detailed Analytics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Top Rated Masterpieces */}
+        <div className="glass-card rounded-2xl p-5 shadow-xl">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
+            <Trophy className="h-4 w-4 text-amber-400" />
+            Top Rated Films
+          </h3>
+          {topRated.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">No personal ratings given yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {topRated.map((m, i) => (
+                <li key={m.id} className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5 border border-white/5">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/20 text-xs font-bold text-amber-400">
+                    #{i + 1}
+                  </span>
+                  <Link
+                    to="/movie/$id"
+                    params={{ id: m.id }}
+                    className="flex-1 truncate text-sm font-medium text-white hover:text-primary transition-colors"
+                  >
+                    {m.cached?.title ?? "Movie"}
+                  </Link>
+                  <span className="flex items-center gap-1 text-sm font-bold text-amber-400">
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    {m.personalRating?.toFixed(1)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
-      <div className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
-        <h3 className="mb-4 text-sm font-semibold">By genre</h3>
-        {byGenre.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No data.</p>
-        ) : (
-          <div className="space-y-2">
-            {byGenre.slice(0, 8).map(([g, n]) => (
-              <div key={g}>
-                <div className="mb-1 flex justify-between text-xs">
-                  <span>{g}</span>
-                  <span className="text-muted-foreground">{n}</span>
+        {/* Rating Distribution Histogram */}
+        <div className="glass-card rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Rating Distribution
+          </h3>
+          <div className="flex items-end justify-between gap-3 h-40 pt-4">
+            {ratingDist.map((count, i) => {
+              const label = `${i * 2}-${i * 2 + 2}★`;
+              const heightPct = (count / maxRating) * 100;
+              return (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1.5 h-full justify-end">
+                  <span className="text-[11px] font-bold text-amber-400">{count > 0 ? count : ""}</span>
+                  <div
+                    className="w-full rounded-t-lg bg-gradient-to-t from-primary/60 to-primary transition-all duration-500"
+                    style={{ height: `${Math.max(6, heightPct)}%` }}
+                  />
+                  <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
                 </div>
-                <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                  <div className="h-full gradient-primary" style={{ width: `${(n / maxGenre) * 100}%` }} />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Genres Breakdown */}
+        <div className="glass-card rounded-2xl p-5 shadow-xl">
+          <h3 className="mb-4 text-sm font-semibold text-white">Top Watched Genres</h3>
+          {byGenre.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">No genre data available.</p>
+          ) : (
+            <div className="space-y-3">
+              {byGenre.slice(0, 7).map(([g, count]) => (
+                <div key={g}>
+                  <div className="mb-1 flex justify-between text-xs font-medium">
+                    <span className="text-zinc-200">{g}</span>
+                    <span className="text-primary font-bold">{count} films</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-amber-500 rounded-full transition-all duration-500"
+                      style={{ width: `${(count / maxGenre) * 100}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="mb-4 rounded-2xl bg-card p-5 ring-1 ring-border">
-        <h3 className="mb-4 text-sm font-semibold">By release year</h3>
-        {byYear.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No data.</p>
-        ) : (
-          <div className="flex items-end justify-between gap-2 h-32">
-            {byYear.slice().reverse().map(([y, n]) => (
-              <div key={y} className="flex flex-1 flex-col items-center gap-1">
-                <div className="w-full rounded-t-md gradient-primary" style={{ height: `${(n / maxYear) * 100}%` }} />
-                <span className="text-[10px] text-muted-foreground">{y}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl bg-card p-5 ring-1 ring-border">
-        <h3 className="mb-4 text-sm font-semibold">Rating distribution</h3>
-        <div className="flex items-end justify-between gap-2 h-24">
-          {ratingDist.map((n, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1">
-              <div className="w-full rounded-t-md bg-gold/70" style={{ height: `${(n / maxRating) * 100}%` }} />
-              <span className="text-[10px] text-muted-foreground">
-                {i * 2}-{i * 2 + 2}
-              </span>
+              ))}
             </div>
-          ))}
+          )}
+        </div>
+
+        {/* Release Years Breakdown */}
+        <div className="glass-card rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
+            <Calendar className="h-4 w-4 text-primary" />
+            Release Era Breakdown
+          </h3>
+          {byYear.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">No year data recorded.</p>
+          ) : (
+            <div className="flex items-end justify-between gap-2 h-40 pt-4">
+              {byYear
+                .slice()
+                .reverse()
+                .map(([y, count]) => {
+                  const heightPct = (count / maxYear) * 100;
+                  return (
+                    <div key={y} className="flex flex-1 flex-col items-center gap-1.5 h-full justify-end">
+                      <span className="text-[10px] font-bold text-white">{count}</span>
+                      <div
+                        className="w-full rounded-t-lg bg-zinc-700 hover:bg-primary transition-all duration-300"
+                        style={{ height: `${Math.max(8, heightPct)}%` }}
+                        title={`${y}: ${count} movies`}
+                      />
+                      <span className="text-[10px] text-muted-foreground">{y}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </div>
     </AppShell>
