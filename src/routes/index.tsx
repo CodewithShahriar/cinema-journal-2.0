@@ -276,38 +276,6 @@ function Home() {
         </div>
       )}
 
-      {/* CineWrapped Annual Story Recap Banner */}
-      {watched.length > 0 && (
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl border border-red-500/25 bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-black backdrop-blur-md shadow-xl transition-all hover:border-red-500/40">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
-              <Sparkles className="h-5 w-5 animate-pulse" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                  Your CineWrapped Recap
-                </h3>
-                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-black text-primary border border-primary/30 uppercase">
-                  Annual Story
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 truncate mt-0.5">
-                Explore your cinema archetype, top rated films, and total hours watched.
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => setWrappedOpen(true)}
-            className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-start sm:self-auto"
-          >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-            Launch Wrapped ✨
-          </Button>
-        </div>
-      )}
-
       {/* Recently Watched Shelf */}
       <section className="mb-8 sm:mb-10">
         <div className="mb-3 sm:mb-4 flex items-center justify-between">
@@ -366,6 +334,40 @@ function Home() {
             {upNext.map((m) => (
               <MovieCard key={m.id} movie={m} variant="grid" />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* CineWrapped Annual Story Recap Footer Banner */}
+      {watched.length > 0 && (
+        <section className="mb-8 sm:mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl border border-red-500/25 bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-black backdrop-blur-md shadow-xl transition-all hover:border-red-500/40">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
+                <Film className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                    Your CineWrapped Recap
+                  </h3>
+                  <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-black text-primary border border-primary/30 uppercase">
+                    Annual Story
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 truncate mt-0.5">
+                  Explore your cinema archetype, top rated films, and total hours watched.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setWrappedOpen(true)}
+              className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-start sm:self-auto"
+            >
+              <Film className="mr-1.5 h-3.5 w-3.5" />
+              Launch Wrapped
+            </Button>
           </div>
         </section>
       )}

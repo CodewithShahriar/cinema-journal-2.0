@@ -82,7 +82,7 @@ function StatsPage() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl border border-red-500/25 bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-black backdrop-blur-md shadow-xl transition-all hover:border-red-500/40">
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
-            <Sparkles className="h-5 w-5 animate-pulse" />
+            <Film className="h-5 w-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -103,8 +103,8 @@ function StatsPage() {
           onClick={() => setWrappedOpen(true)}
           className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-start sm:self-auto"
         >
-          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-          Launch CineWrapped ✨
+          <Film className="mr-1.5 h-3.5 w-3.5" />
+          Launch CineWrapped
         </Button>
       </div>
 
