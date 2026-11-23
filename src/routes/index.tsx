@@ -363,9 +363,8 @@ function Home() {
 
             <Button
               onClick={() => setWrappedOpen(true)}
-              className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-start sm:self-auto"
+              className="h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-center sm:self-auto"
             >
-              <Film className="mr-1.5 h-3.5 w-3.5" />
               Launch Wrapped
             </Button>
           </div>
