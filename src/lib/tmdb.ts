@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { tmdbGetMovie, tmdbSearch } from "./tmdb.functions";
+import { tmdbGetMovie, tmdbGetVideos, tmdbSearch } from "./tmdb.functions";
 import { useMovies } from "./movies-store";
-import type { TmdbMovie, TmdbSearchResult } from "./tmdb-types";
+import type { TmdbMovie, TmdbSearchResult, TmdbVideo } from "./tmdb-types";
 
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
@@ -146,4 +146,66 @@ export function useTmdbSearch(query: string) {
 /** For pages that show lists, cached snapshot is used for filtering/sorting */
 export function useVisibleTitle(cached?: TmdbMovie) {
   return useMemo(() => cached?.title ?? "Loading…", [cached]);
+}
+
+/** Direct client-side fetch fallback for movie videos */
+export async function directClientGetVideos(id: number): Promise<TmdbVideo[]> {
+  const token = getClientToken();
+  const res = await fetch(`${BASE}/movie/${id}/videos?language=en-US`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  if (!res.ok) return [];
+  const json = (await res.json()) as { results?: Array<Record<string, unknown>> };
+  return (json.results ?? []).map((v) => ({
+    id: String(v.id),
+    key: String(v.key),
+    name: String(v.name || ""),
+    site: String(v.site || ""),
+    type: String(v.type || ""),
+    official: Boolean(v.official),
+  }));
+}
+
+/** Pick the best YouTube trailer from an array of TMDB videos */
+export function pickBestTrailer(videos: TmdbVideo[]): TmdbVideo | null {
+  const yt = videos.filter((v) => v.site.toLowerCase() === "youtube" && v.key);
+  if (!yt.length) return null;
+
+  // 1. Official Trailer
+  const officialTrailer = yt.find((v) => v.type === "Trailer" && v.official);
+  if (officialTrailer) return officialTrailer;
+
+  // 2. Any Trailer
+  const trailer = yt.find((v) => v.type === "Trailer");
+  if (trailer) return trailer;
+
+  // 3. Teaser
+  const teaser = yt.find((v) => v.type === "Teaser");
+  if (teaser) return teaser;
+
+  // 4. Any clip / featurette
+  return yt[0];
+}
+
+/** React Query hook to get best trailer for a TMDB ID */
+export function useTmdbTrailer(tmdbId: number, enabled = true) {
+  const fetcher = useServerFn(tmdbGetVideos);
+
+  return useQuery({
+    queryKey: ["tmdb-trailer", tmdbId],
+    queryFn: async (): Promise<TmdbVideo | null> => {
+      let videos: TmdbVideo[] = [];
+      try {
+        videos = await fetcher({ data: { id: tmdbId } });
+      } catch {
+        videos = await directClientGetVideos(tmdbId);
+      }
+      return pickBestTrailer(videos);
+    },
+    enabled: enabled && Number.isFinite(tmdbId) && tmdbId > 0,
+    staleTime: 1000 * 60 * 60 * 24, // 24h
+  });
 }

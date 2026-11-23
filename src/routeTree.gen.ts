@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as WatchedRouteImport } from './routes/watched'
 import { Route as WatchlistRouteImport } from './routes/watchlist'
+import { Route as WrappedRouteImport } from './routes/wrapped'
 import { Route as EditIdRouteImport } from './routes/edit.$id'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
 
@@ -54,6 +55,11 @@ const WatchlistRoute = WatchlistRouteImport.update({
   path: '/watchlist',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WrappedRoute = WrappedRouteImport.update({
+  id: '/wrapped',
+  path: '/wrapped',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EditIdRoute = EditIdRouteImport.update({
   id: '/edit/$id',
   path: '/edit/$id',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof StatsRoute
   '/watched': typeof WatchedRoute
   '/watchlist': typeof WatchlistRoute
+  '/wrapped': typeof WrappedRoute
   '/edit/$id': typeof EditIdRoute
   '/movie/$id': typeof MovieIdRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/stats': typeof StatsRoute
   '/watched': typeof WatchedRoute
   '/watchlist': typeof WatchlistRoute
+  '/wrapped': typeof WrappedRoute
   '/edit/$id': typeof EditIdRoute
   '/movie/$id': typeof MovieIdRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/stats': typeof StatsRoute
   '/watched': typeof WatchedRoute
   '/watchlist': typeof WatchlistRoute
+  '/wrapped': typeof WrappedRoute
   '/edit/$id': typeof EditIdRoute
   '/movie/$id': typeof MovieIdRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/watched'
     | '/watchlist'
+    | '/wrapped'
     | '/edit/$id'
     | '/movie/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/watched'
     | '/watchlist'
+    | '/wrapped'
     | '/edit/$id'
     | '/movie/$id'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/watched'
     | '/watchlist'
+    | '/wrapped'
     | '/edit/$id'
     | '/movie/$id'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   StatsRoute: typeof StatsRoute
   WatchedRoute: typeof WatchedRoute
   WatchlistRoute: typeof WatchlistRoute
+  WrappedRoute: typeof WrappedRoute
   EditIdRoute: typeof EditIdRoute
   MovieIdRoute: typeof MovieIdRoute
 }
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WatchlistRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wrapped': {
+      id: '/wrapped'
+      path: '/wrapped'
+      fullPath: '/wrapped'
+      preLoaderRoute: typeof WrappedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/edit/$id': {
       id: '/edit/$id'
       path: '/edit/$id'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatsRoute: StatsRoute,
   WatchedRoute: WatchedRoute,
   WatchlistRoute: WatchlistRoute,
+  WrappedRoute: WrappedRoute,
   EditIdRoute: EditIdRoute,
   MovieIdRoute: MovieIdRoute,
 }

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   ArrowLeft,
   Heart,
@@ -12,6 +13,8 @@ import {
   Loader2,
   RefreshCcw,
   Sparkles,
+  Film,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -19,6 +22,7 @@ import { PosterFallback } from "@/components/MovieCard";
 import { useMovies } from "@/lib/movies-store";
 import { useTmdbMovie } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
+import { TrailerModal } from "@/components/TrailerModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +43,7 @@ function MovieDetail() {
     useMovies();
   const navigate = useNavigate();
   const movie = movies.find((m) => m.id === id);
+  const [trailerOpen, setTrailerOpen] = useState(false);
 
   const { data: t, isLoading, isFallback, error } = useTmdbMovie(
     movie?.tmdbId ?? 0,
@@ -129,6 +134,16 @@ function MovieDetail() {
 
               {/* Status & Actions Box */}
               <div className="mt-4 space-y-2.5">
+                {/* Watch Official Trailer button */}
+                <Button
+                  type="button"
+                  onClick={() => setTrailerOpen(true)}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-semibold rounded-xl border border-red-500/30 shadow-lg shadow-black/50 hover:border-red-500/50 transition-all hover:scale-[1.02] active:scale-95"
+                >
+                  <Play className="mr-2 h-4 w-4 fill-red-500 text-red-500" />
+                  Watch Trailer
+                </Button>
+
                 {movie.status === "watchlist" ? (
                   <Button
                     onClick={() => {
@@ -345,6 +360,13 @@ function MovieDetail() {
           </div>
         </div>
       </div>
+
+      <TrailerModal
+        isOpen={trailerOpen}
+        onOpenChange={setTrailerOpen}
+        tmdbId={movie.tmdbId}
+        title={title}
+      />
     </AppShell>
   );
 }

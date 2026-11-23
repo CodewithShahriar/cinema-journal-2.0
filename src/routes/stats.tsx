@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Star, Film, Clock, BarChart3, TrendingUp, Trophy, Calendar } from "lucide-react";
-import { useMemo } from "react";
+import { ArrowLeft, Star, Film, Clock, BarChart3, TrendingUp, Trophy, Calendar, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useMovies } from "@/lib/movies-store";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { CineWrappedModal } from "@/components/CineWrappedModal";
 
 export const Route = createFileRoute("/stats")({
   component: StatsPage,
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/stats")({
 
 function StatsPage() {
   const { movies } = useMovies();
+  const [wrappedOpen, setWrappedOpen] = useState(false);
   const watched = movies.filter((m) => m.status === "watched");
   const total = movies.length;
   const pct = total ? Math.round((watched.length / total) * 100) : 0;
@@ -74,6 +77,36 @@ function StatsPage() {
         title="Cinema Analytics"
         subtitle="Detailed insights into your viewing habits and collection"
       />
+
+      {/* CineWrapped Annual Story Banner */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl border border-red-500/25 bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-black backdrop-blur-md shadow-xl transition-all hover:border-red-500/40">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
+            <Sparkles className="h-5 w-5 animate-pulse" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                Your CineWrapped Story
+              </h3>
+              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-black text-primary border border-primary/30 uppercase">
+                Annual Recap
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 truncate mt-0.5">
+              Spotify Wrapped style interactive journey of your movie milestones and persona.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          onClick={() => setWrappedOpen(true)}
+          className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-start sm:self-auto"
+        >
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          Launch CineWrapped ✨
+        </Button>
+      </div>
 
       {/* Top 4 KPI Stat Cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -242,6 +275,11 @@ function StatsPage() {
           )}
         </div>
       </div>
+
+      <CineWrappedModal
+        isOpen={wrappedOpen}
+        onOpenChange={setWrappedOpen}
+      />
     </AppShell>
   );
 }

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { TmdbMovie, TmdbSearchResult } from "./tmdb-types";
+import type { TmdbMovie, TmdbSearchResult, TmdbVideo } from "./tmdb-types";
 
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
@@ -92,4 +92,24 @@ export const tmdbGetMovie = createServerFn({ method: "GET" })
       voteAverage: typeof r.vote_average === "number" ? (r.vote_average as number) : undefined,
       voteCount: typeof r.vote_count === "number" ? (r.vote_count as number) : undefined,
     };
+  });
+
+export const tmdbGetVideos = createServerFn({ method: "GET" })
+  .validator((d: { id: number }) => ({ id: Number(d?.id) }))
+  .handler(async ({ data }): Promise<TmdbVideo[]> => {
+    try {
+      const json = await tmdb<{ results: Array<Record<string, unknown>> }>(
+        `/movie/${data.id}/videos?language=en-US`,
+      );
+      return (json.results ?? []).map((v) => ({
+        id: String(v.id),
+        key: String(v.key),
+        name: String(v.name || ""),
+        site: String(v.site || ""),
+        type: String(v.type || ""),
+        official: Boolean(v.official),
+      }));
+    } catch {
+      return [];
+    }
   });

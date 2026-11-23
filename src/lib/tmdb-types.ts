@@ -22,3 +22,12 @@ export interface TmdbSearchResult {
   voteAverage?: number;
   genreIds: number[];
 }
+
+export interface TmdbVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official: boolean;
+}

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   Film,
   Bookmark,
@@ -10,6 +11,7 @@ import {
   Plus,
   Play,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { useMovies } from "@/lib/movies-store";
 import { AppShell } from "@/components/AppShell";
@@ -17,6 +19,8 @@ import { MovieCard, EmptyState } from "@/components/MovieCard";
 import { Progress } from "@/components/ui/progress";
 import { TmdbSearchPicker } from "@/components/TmdbSearchPicker";
 import { Button } from "@/components/ui/button";
+import { TrailerModal } from "@/components/TrailerModal";
+import { CineWrappedModal } from "@/components/CineWrappedModal";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -127,64 +131,75 @@ function Home() {
   // Spotlight movie for hero banner: top rated favorite, or recent watched
   const spotlight = favorites[0] || recent[0] || movies[0];
 
+  const [trailerMovie, setTrailerMovie] = useState<{ id: number; title: string } | null>(null);
+  const [wrappedOpen, setWrappedOpen] = useState(false);
+
   return (
     <AppShell>
       {/* Cinematic Netflix Spotlight Hero */}
       {spotlight?.cached ? (
         <section className="relative mb-6 sm:mb-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
           {/* Backdrop Image with gradient overlay */}
-          <div className="relative h-80 sm:h-[420px] md:h-[520px] lg:h-[620px] xl:h-[680px] w-full overflow-hidden bg-zinc-950">
+          <div className="relative h-[420px] sm:h-[480px] md:h-[540px] lg:h-[620px] xl:h-[680px] w-full overflow-hidden bg-zinc-950">
             {spotlight.cached.backdrop || spotlight.cached.poster ? (
               <img
                 src={spotlight.cached.backdrop || spotlight.cached.poster}
                 alt={spotlight.cached.title}
-                className="h-full w-full object-cover object-[center_20%] filter brightness-[0.55] transition-transform duration-1000 ease-out hover:scale-105"
+                className="h-full w-full object-cover object-[center_18%] filter brightness-[0.65] transition-transform duration-1000 ease-out hover:scale-105"
               />
             ) : null}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent" />
           </div>
 
           {/* Hero Content */}
-          <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10 md:p-14 lg:p-16">
+          <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-8 md:p-12 lg:p-16">
             {spotlight.cached.year && (
-              <div className="mb-2.5">
-                <span className="inline-flex items-center rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur-md border border-white/15">
+              <div className="mb-2">
+                <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/15">
                   {spotlight.cached.year}
                 </span>
               </div>
             )}
 
-            <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white max-w-3xl drop-shadow-lg leading-tight tracking-tight">
+            <h1 className="font-display text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white max-w-3xl drop-shadow-lg leading-tight tracking-tight">
               {spotlight.cached.title}
             </h1>
 
             {spotlight.cached.overview && (
-              <p className="mt-3 line-clamp-3 max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-200 drop-shadow">
+              <p className="mt-2 line-clamp-2 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 drop-shadow">
                 {spotlight.cached.overview}
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            {/* Mobile: Perfect 2-column side-by-side grid. Desktop: Sleek inline row */}
+            <div className="mt-3.5 sm:mt-6 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 asChild
-                className="h-11 sm:h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-xl shadow-primary/35"
+                className="h-10 sm:h-12 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-xs sm:text-sm shadow-xl shadow-primary/35 transition-all hover:scale-105 active:scale-95 justify-center"
               >
                 <Link to="/movie/$id" params={{ id: spotlight.id }}>
-                  <Play className="mr-2 h-4 w-4 fill-white" />
-                  View Movie Details
+                  <Play className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 fill-white shrink-0" />
+                  <span className="truncate">View Details</span>
                 </Link>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 sm:h-12 px-6 rounded-2xl border-white/20 bg-black/50 text-white backdrop-blur-md hover:bg-white/10 text-sm font-semibold"
-              >
-                <Link to="/add">
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  Log New Movie
-                </Link>
-              </Button>
+
+              {spotlight.tmdbId ? (
+                <Button
+                  type="button"
+                  onClick={() =>
+                    setTrailerMovie({
+                      id: spotlight.tmdbId,
+                      title: spotlight.cached?.title || "Movie Trailer",
+                    })
+                  }
+                  variant="outline"
+                  className="h-10 sm:h-12 px-3 sm:px-5 rounded-xl sm:rounded-2xl border-white/20 bg-black/60 text-white backdrop-blur-md hover:bg-white/15 text-xs sm:text-sm font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg justify-center"
+                >
+                  <Film className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 shrink-0" />
+                  <span className="truncate">Watch Trailer</span>
+                </Button>
+              ) : null}
             </div>
           </div>
         </section>
@@ -261,6 +276,38 @@ function Home() {
         </div>
       )}
 
+      {/* CineWrapped Annual Story Recap Banner */}
+      {watched.length > 0 && (
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl border border-red-500/25 bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-black backdrop-blur-md shadow-xl transition-all hover:border-red-500/40">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
+              <Sparkles className="h-5 w-5 animate-pulse" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                  Your CineWrapped Recap
+                </h3>
+                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-black text-primary border border-primary/30 uppercase">
+                  Annual Story
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 truncate mt-0.5">
+                Explore your cinema archetype, top rated films, and total hours watched.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => setWrappedOpen(true)}
+            className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shrink-0 shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all self-start sm:self-auto"
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Launch Wrapped ✨
+          </Button>
+        </div>
+      )}
+
       {/* Recently Watched Shelf */}
       <section className="mb-8 sm:mb-10">
         <div className="mb-3 sm:mb-4 flex items-center justify-between">
@@ -322,6 +369,18 @@ function Home() {
           </div>
         </section>
       )}
+
+      {/* Trailer & Wrapped Modals */}
+      <TrailerModal
+        isOpen={Boolean(trailerMovie)}
+        onOpenChange={(open) => !open && setTrailerMovie(null)}
+        tmdbId={trailerMovie?.id}
+        title={trailerMovie?.title}
+      />
+      <CineWrappedModal
+        isOpen={wrappedOpen}
+        onOpenChange={setWrappedOpen}
+      />
     </AppShell>
   );
 }
