@@ -31,3 +31,35 @@ export interface TmdbVideo {
   type: string;
   official: boolean;
 }
+
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  character: string;
+  profilePath?: string;
+  order: number;
+}
+
+export interface TmdbCrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+  profilePath?: string;
+}
+
+export interface TmdbCredits {
+  cast: TmdbCastMember[];
+  directors: TmdbCrewMember[];
+}
+
+export interface TmdbRecommendation {
+  id: number;
+  title: string;
+  poster?: string;
+  backdrop?: string;
+  year?: number;
+  voteAverage?: number;
+  overview?: string;
+  genreIds?: number[];
+}

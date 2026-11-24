@@ -1,5 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { TmdbMovie, TmdbSearchResult, TmdbVideo } from "./tmdb-types";
+import type {
+  TmdbMovie,
+  TmdbSearchResult,
+  TmdbVideo,
+  TmdbCredits,
+  TmdbRecommendation,
+} from "./tmdb-types";
 
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
@@ -108,6 +114,76 @@ export const tmdbGetVideos = createServerFn({ method: "GET" })
         site: String(v.site || ""),
         type: String(v.type || ""),
         official: Boolean(v.official),
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+function profileUrl(path?: string | null, size = "w185") {
+  return path ? `${IMG}/${size}${path}` : undefined;
+}
+
+export const tmdbGetCredits = createServerFn({ method: "GET" })
+  .validator((d: { id: number }) => ({ id: Number(d?.id) }))
+  .handler(async ({ data }): Promise<TmdbCredits> => {
+    try {
+      const json = await tmdb<{
+        cast?: Array<Record<string, unknown>>;
+        crew?: Array<Record<string, unknown>>;
+      }>(`/movie/${data.id}/credits?language=en-US`);
+
+      const cast = (json.cast ?? []).slice(0, 12).map((c) => ({
+        id: c.id as number,
+        name: (c.name as string) || "Unknown",
+        character: (c.character as string) || "",
+        profilePath: profileUrl(c.profile_path as string | undefined),
+        order: (c.order as number) ?? 0,
+      }));
+
+      const directors = (json.crew ?? [])
+        .filter((c) => c.job === "Director")
+        .map((c) => ({
+          id: c.id as number,
+          name: (c.name as string) || "Unknown",
+          job: "Director",
+          department: (c.department as string) || "Directing",
+          profilePath: profileUrl(c.profile_path as string | undefined),
+        }));
+
+      return { cast, directors };
+    } catch {
+      return { cast: [], directors: [] };
+    }
+  });
+
+export const tmdbGetRecommendations = createServerFn({ method: "GET" })
+  .validator((d: { id: number }) => ({ id: Number(d?.id) }))
+  .handler(async ({ data }): Promise<TmdbRecommendation[]> => {
+    try {
+      let json = await tmdb<{ results?: Array<Record<string, unknown>> }>(
+        `/movie/${data.id}/recommendations?language=en-US&page=1`,
+      );
+
+      // Fallback to similar movies if recommendations are sparse
+      if (!json.results || json.results.length < 3) {
+        json = await tmdb<{ results?: Array<Record<string, unknown>> }>(
+          `/movie/${data.id}/similar?language=en-US&page=1`,
+        );
+      }
+
+      return (json.results ?? []).slice(0, 12).map((r) => ({
+        id: r.id as number,
+        title: (r.title as string) || (r.original_title as string) || "Untitled",
+        year: yearFromDate(r.release_date as string | undefined),
+        poster: posterUrl(r.poster_path as string | undefined, "w342"),
+        backdrop: backdropUrl(r.backdrop_path as string | undefined),
+        overview: (r.overview as string) || undefined,
+        voteAverage:
+          typeof r.vote_average === "number"
+            ? Number((r.vote_average as number).toFixed(1))
+            : undefined,
+        genreIds: (r.genre_ids as number[]) ?? [],
       }));
     } catch {
       return [];

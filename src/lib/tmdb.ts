@@ -1,9 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { tmdbGetMovie, tmdbGetVideos, tmdbSearch } from "./tmdb.functions";
+import {
+  tmdbGetMovie,
+  tmdbGetVideos,
+  tmdbSearch,
+  tmdbGetCredits,
+  tmdbGetRecommendations,
+} from "./tmdb.functions";
 import { useMovies } from "./movies-store";
-import type { TmdbMovie, TmdbSearchResult, TmdbVideo } from "./tmdb-types";
+import type {
+  TmdbMovie,
+  TmdbSearchResult,
+  TmdbVideo,
+  TmdbCredits,
+  TmdbRecommendation,
+} from "./tmdb-types";
 
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
@@ -204,6 +216,116 @@ export function useTmdbTrailer(tmdbId: number, enabled = true) {
         videos = await directClientGetVideos(tmdbId);
       }
       return pickBestTrailer(videos);
+    },
+    enabled: enabled && Number.isFinite(tmdbId) && tmdbId > 0,
+    staleTime: 1000 * 60 * 60 * 24, // 24h
+  });
+}
+
+/** Direct client-side fetch fallback for credits */
+async function directClientGetCredits(id: number): Promise<TmdbCredits> {
+  const token = getClientToken();
+  const res = await fetch(`${BASE}/movie/${id}/credits?language=en-US`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`TMDB direct credits failed: ${res.status}`);
+  const json = (await res.json()) as {
+    cast?: Array<Record<string, unknown>>;
+    crew?: Array<Record<string, unknown>>;
+  };
+
+  const cast = (json.cast ?? []).slice(0, 12).map((c) => ({
+    id: c.id as number,
+    name: (c.name as string) || "Unknown",
+    character: (c.character as string) || "",
+    profilePath: c.profile_path ? `${IMG}/w185${c.profile_path}` : undefined,
+    order: (c.order as number) ?? 0,
+  }));
+
+  const directors = (json.crew ?? [])
+    .filter((c) => c.job === "Director")
+    .map((c) => ({
+      id: c.id as number,
+      name: (c.name as string) || "Unknown",
+      job: "Director",
+      department: (c.department as string) || "Directing",
+      profilePath: c.profile_path ? `${IMG}/w185${c.profile_path}` : undefined,
+    }));
+
+  return { cast, directors };
+}
+
+/** Direct client-side fetch fallback for recommendations */
+async function directClientGetRecommendations(id: number): Promise<TmdbRecommendation[]> {
+  const token = getClientToken();
+  let res = await fetch(`${BASE}/movie/${id}/recommendations?language=en-US&page=1`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  let json = res.ok
+    ? ((await res.json()) as { results?: Array<Record<string, unknown>> })
+    : { results: [] };
+
+  if (!json.results || json.results.length < 3) {
+    res = await fetch(`${BASE}/movie/${id}/similar?language=en-US&page=1`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (res.ok) {
+      json = (await res.json()) as { results?: Array<Record<string, unknown>> };
+    }
+  }
+
+  return (json.results ?? []).slice(0, 12).map((r) => {
+    const releaseDate = r.release_date as string | undefined;
+    const year =
+      releaseDate && /^\d{4}/.test(releaseDate) ? Number(releaseDate.slice(0, 4)) : undefined;
+    const posterPath = r.poster_path as string | undefined;
+    const backdropPath = r.backdrop_path as string | undefined;
+    return {
+      id: r.id as number,
+      title: (r.title as string) || (r.original_title as string) || "Untitled",
+      year,
+      poster: posterPath ? `${IMG}/w342${posterPath}` : undefined,
+      backdrop: backdropPath ? `${IMG}/w1280${backdropPath}` : undefined,
+      overview: (r.overview as string) || undefined,
+      voteAverage:
+        typeof r.vote_average === "number"
+          ? Number((r.vote_average as number).toFixed(1))
+          : undefined,
+      genreIds: (r.genre_ids as number[]) ?? [],
+    };
+  });
+}
+
+/** React Query hook to get cast and directors for a movie */
+export function useTmdbCredits(tmdbId: number, enabled = true) {
+  const fetcher = useServerFn(tmdbGetCredits);
+
+  return useQuery({
+    queryKey: ["tmdb-credits", tmdbId],
+    queryFn: async (): Promise<TmdbCredits> => {
+      try {
+        return await fetcher({ data: { id: tmdbId } });
+      } catch {
+        return await directClientGetCredits(tmdbId);
+      }
+    },
+    enabled: enabled && Number.isFinite(tmdbId) && tmdbId > 0,
+    staleTime: 1000 * 60 * 60 * 24, // 24h
+  });
+}
+
+/** React Query hook to get movie recommendations / similar movies */
+export function useTmdbRecommendations(tmdbId: number, enabled = true) {
+  const fetcher = useServerFn(tmdbGetRecommendations);
+
+  return useQuery({
+    queryKey: ["tmdb-recommendations", tmdbId],
+    queryFn: async (): Promise<TmdbRecommendation[]> => {
+      try {
+        return await fetcher({ data: { id: tmdbId } });
+      } catch {
+        return await directClientGetRecommendations(tmdbId);
+      }
     },
     enabled: enabled && Number.isFinite(tmdbId) && tmdbId > 0,
     staleTime: 1000 * 60 * 60 * 24, // 24h
