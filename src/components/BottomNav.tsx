@@ -13,9 +13,12 @@ export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 pb-[calc(env(safe-area-inset-bottom)+0.6rem)] pt-1 md:hidden pointer-events-none">
-      <div className="mx-auto max-w-md px-4 pointer-events-auto">
-        <div className="glass flex items-center justify-between rounded-2xl p-1.5 shadow-2xl ring-1 ring-white/10 backdrop-blur-2xl">
+    <nav className="fixed inset-x-0 bottom-0 z-40 md:hidden pointer-events-none">
+      {/* Frosted gradient blur backdrop ensuring nothing awkwardly peeks underneath */}
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-md pointer-events-none" />
+
+      <div className="relative mx-auto max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+0.6rem)] pt-2 pointer-events-auto">
+        <div className="glass flex items-center justify-between rounded-2xl p-1.5 shadow-2xl ring-1 ring-white/10 backdrop-blur-2xl bg-zinc-950/85">
           {items.map((item) => {
             const { to, label, icon: Icon } = item;
             const isAction = "isAction" in item && item.isAction;

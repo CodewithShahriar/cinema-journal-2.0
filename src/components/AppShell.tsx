@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="pointer-events-none fixed -top-40 right-0 -z-10 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgb(229_9_20/12%),transparent_70%)] blur-3xl" />
 
       {/* Top Header - Responsive for both Desktop and Mobile with Notch/Safe-Area Support */}
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-background/95 backdrop-blur-2xl pt-safe shadow-sm">
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-background/95 backdrop-blur-2xl pt-safe sm:pt-0 shadow-sm">
         <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
           {/* Logo & Brand */}
           <div className="flex items-center gap-8">
@@ -146,7 +146,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Main Responsive Body Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 pb-28 md:pb-16">
+      <main className="flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 pb-36 md:pb-16">
         {children}
       </main>
 

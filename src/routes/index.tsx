@@ -229,9 +229,9 @@ function Home() {
             </div>
           )}
 
-          {/* Bottom Right 5-Slide Pill Indicators */}
+          {/* Bottom Right 5-Slide Pill Indicators (Desktop only to prevent clashing with mobile action buttons) */}
           {heroCandidates.length > 1 && (
-            <div className="absolute bottom-4 right-4 sm:bottom-8 sm:right-8 z-20 flex items-center gap-1.5">
+            <div className="hidden sm:flex absolute sm:bottom-8 sm:right-8 z-20 items-center gap-1.5">
               {heroCandidates.map((c, i) => (
                 <button
                   key={c.id}
