@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Film,
   Bookmark,
@@ -12,6 +12,8 @@ import {
   Play,
   ArrowRight,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useMovies } from "@/lib/movies-store";
 import { AppShell } from "@/components/AppShell";
@@ -128,46 +130,158 @@ function Home() {
 
   const upNext = [...watchlist].slice(0, 6);
 
-  // Spotlight movie for hero banner: top rated favorite, or recent watched
-  const spotlight = favorites[0] || recent[0] || movies[0];
+  // 1st Priority: Latest additions to Watchlist (sorted by createdAt descending)
+  const recentWatchlist = [...watchlist].sort((a, b) =>
+    (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
+  );
+
+  // Collect up to 5 unique movies for the rotating Hero banner
+  const heroCandidates: typeof movies = [];
+  const seenIds = new Set<string>();
+
+  for (const m of recentWatchlist) {
+    if (m.cached && !seenIds.has(m.id)) {
+      heroCandidates.push(m);
+      seenIds.add(m.id);
+      if (heroCandidates.length >= 5) break;
+    }
+  }
+
+  // If watchlist has fewer than 5 movies, fill up with other library movies
+  if (heroCandidates.length < 5) {
+    const supplement = [...favorites, ...recent, ...movies];
+    for (const m of supplement) {
+      if (m.cached && !seenIds.has(m.id)) {
+        heroCandidates.push(m);
+        seenIds.add(m.id);
+        if (heroCandidates.length >= 5) break;
+      }
+    }
+  }
+
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // 5-second automatic rotation
+  useEffect(() => {
+    if (heroCandidates.length <= 1 || isPaused) return;
+    const timer = setInterval(() => {
+      setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [heroCandidates.length, isPaused]);
+
+  const safeIndex = activeHeroIndex < heroCandidates.length ? activeHeroIndex : 0;
+  const spotlight = heroCandidates[safeIndex];
 
   const [trailerMovie, setTrailerMovie] = useState<{ id: number; title: string } | null>(null);
   const [wrappedOpen, setWrappedOpen] = useState(false);
 
   return (
     <AppShell>
-      {/* Cinematic Netflix Spotlight Hero */}
+      {/* Cinematic Netflix Spotlight Hero (5-Movie Auto Carousel) */}
       {spotlight?.cached ? (
-        <section className="relative mb-6 sm:mb-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
-          {/* Backdrop Image with gradient overlay */}
+        <section
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          className="group/hero relative mb-6 sm:mb-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl transition-all"
+        >
+          {/* Backdrop Image with smooth crossfade and gradient overlay */}
           <div className="relative h-[420px] sm:h-[480px] md:h-[540px] lg:h-[620px] xl:h-[680px] w-full overflow-hidden bg-zinc-950">
             {spotlight.cached.backdrop || spotlight.cached.poster ? (
               <img
+                key={spotlight.id}
                 src={spotlight.cached.backdrop || spotlight.cached.poster}
                 alt={spotlight.cached.title}
-                className="h-full w-full object-cover object-[center_18%] filter brightness-[0.65] transition-transform duration-1000 ease-out hover:scale-105"
+                className="h-full w-full object-cover object-[center_18%] filter brightness-[0.65] transition-all duration-700 ease-out animate-reveal-card"
               />
             ) : null}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent pointer-events-none" />
           </div>
+
+          {/* Top Controls: Manual Navigation & Indicator */}
+          {heroCandidates.length > 1 && (
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-1.5 sm:gap-2">
+              <span className="hidden sm:inline-flex text-[11px] font-mono text-white/70 bg-black/60 px-2 py-0.5 rounded-full border border-white/10 backdrop-blur-md">
+                {safeIndex + 1} / {heroCandidates.length}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveHeroIndex((prev) => (prev - 1 + heroCandidates.length) % heroCandidates.length)
+                }
+                aria-label="Previous movie"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md border border-white/15 flex items-center justify-center transition-all active:scale-90"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length)
+                }
+                aria-label="Next movie"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md border border-white/15 flex items-center justify-center transition-all active:scale-90"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Bottom Right 5-Slide Pill Indicators */}
+          {heroCandidates.length > 1 && (
+            <div className="absolute bottom-4 right-4 sm:bottom-8 sm:right-8 z-20 flex items-center gap-1.5">
+              {heroCandidates.map((c, i) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveHeroIndex(i)}
+                  aria-label={`Jump to movie ${i + 1}: ${c.cached?.title}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    i === safeIndex
+                      ? "w-7 bg-primary shadow-lg shadow-primary/60"
+                      : "w-2 bg-white/30 hover:bg-white/60 hover:w-3"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Hero Content */}
           <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-8 md:p-12 lg:p-16">
-            {spotlight.cached.year && (
-              <div className="mb-2">
+            <div className="mb-2 flex items-center gap-2">
+              {spotlight.status === "watchlist" ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-primary backdrop-blur-md border border-primary/30">
+                  <Bookmark className="h-3 w-3 fill-primary" />
+                  Watchlist
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/20">
+                  <Film className="h-3 w-3" />
+                  Featured
+                </span>
+              )}
+
+              {spotlight.cached.year && (
                 <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/15">
                   {spotlight.cached.year}
                 </span>
-              </div>
-            )}
+              )}
+            </div>
 
-            <h1 className="font-display text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white max-w-3xl drop-shadow-lg leading-tight tracking-tight">
+            <h1
+              key={`title-${spotlight.id}`}
+              className="font-display text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white max-w-3xl drop-shadow-lg leading-tight tracking-tight animate-reveal-card"
+            >
               {spotlight.cached.title}
             </h1>
 
             {spotlight.cached.overview && (
-              <p className="mt-2 line-clamp-2 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 drop-shadow">
+              <p
+                key={`desc-${spotlight.id}`}
+                className="mt-2 line-clamp-2 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 drop-shadow animate-reveal-card"
+              >
                 {spotlight.cached.overview}
               </p>
             )}
