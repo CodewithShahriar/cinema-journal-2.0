@@ -16,10 +16,6 @@
   <img src="public/preview.jpg" alt="CineJournal Netflix-Style Dashboard Preview" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);" />
 </p>
 
-<p align="center">
-  <img src="public/movie-cards.jpg" alt="CineJournal Movie Cards with Genre & Runtime" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);" />
-</p>
-
 **CineJournal** is a sleek, ultra-modern cinema journal crafted for film lovers. Track your screenings, curate your watchlist, rate films, log personal reviews, watch official YouTube trailers directly in-app, and experience your personal **CineWrapped** annual movie journey.
 
 [Features](#-key-features) • [Tech Stack](#-tech-stack) • [Quick Start](#-quick-start) • [Environment Setup](#-environment-variables) • [Deployment](#-deployment-vercel)
