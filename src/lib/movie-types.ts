@@ -20,6 +20,9 @@ export interface TrackedMovie {
   cached?: TmdbMovie;
 }
 
+export type Movie = TrackedMovie;
+export type MovieItem = TrackedMovie;
+
 // Kept as a filter dropdown convenience — TMDB uses matching names.
 export const GENRES = [
   "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary",

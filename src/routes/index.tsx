@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Film,
   Bookmark,
@@ -314,7 +314,7 @@ function Home() {
               transform: `translateX(-${(heroCandidates.length > 1 ? slideIndex : 0) * 100}%)`,
             }}
           >
-            {slides.map((c) => {
+            {slides.map((c: any) => {
               const bg = c.cached?.backdrop || c.cached?.poster;
               return (
                 <div

@@ -18,6 +18,9 @@ import {
 } from "./supabase-movies";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
+export type { TrackedMovie };
+export type MovieItem = TrackedMovie;
+
 const STORAGE_KEY = "cinejournal.movies.v2";
 const BACKUP_KEY = "cinejournal.movies.backup";
 const DELETED_KEY = "cinejournal.deleted_ids.v2";
@@ -315,7 +318,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
         void (async () => {
           try {
             setSyncStatus("syncing");
-            await saveMoviesToSupabase(movies, currentUserId.current);
+            await saveMoviesToSupabase(movies, currentUserId.current || undefined);
             syncedMovieIds.current = new Set(movies.map((m) => m.id));
             setLastSyncedAt(new Date());
             setSyncStatus("synced");
@@ -399,7 +402,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
         saveLocalDeleted(localDeleted);
 
         // 2. Delete from Supabase AND write tombstone so all other devices purge it too
-        void deleteMovieFromSupabase(target.id, target.tmdbId, currentUserId.current).catch((err) =>
+        void deleteMovieFromSupabase(target.id, target.tmdbId, currentUserId.current || undefined).catch((err) =>
           console.warn("Could not delete from Supabase:", err),
         );
       }
