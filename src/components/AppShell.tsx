@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Film,
@@ -8,9 +8,12 @@ import {
   BarChart3,
   Settings,
   Plus,
+  Cloud,
 } from "lucide-react";
 import { BottomNav } from "./BottomNav";
 import { Button } from "./ui/button";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const navLinks = [
   { to: "/", label: "Home", icon: Film },
@@ -22,6 +25,21 @@ const navLinks = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [currentUser, setCurrentUser] = useState<SupabaseUser | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      setCurrentUser(data.session?.user ?? null);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   return (
     <div className="relative min-h-screen flex flex-col bg-background text-foreground selection:bg-primary selection:text-white">
@@ -84,15 +102,43 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             </Button>
 
-            {/* Settings Link - Easily accessible on Mobile & Desktop */}
+            {/* Desktop Live Account & Sync Indicator Pill */}
+            {currentUser?.email ? (
+              <Link
+                to="/settings"
+                title={`Logged in as ${currentUser.email} • Cloud Sync Active`}
+                className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 text-xs text-white transition-all shadow-sm group"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="font-mono text-[11px] text-emerald-300 font-medium truncate max-w-[120px]">
+                  {currentUser.email.split("@")[0]}
+                </span>
+                <Cloud className="h-3.5 w-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              </Link>
+            ) : null}
+
+            {/* Settings Link with Live Status Badge (Mobile & Desktop) */}
             <Button
               asChild
               variant="outline"
               size="icon"
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl border-white/15 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white shrink-0 active:scale-95 transition-transform"
+              className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-xl border-white/15 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white shrink-0 active:scale-95 transition-transform"
             >
-              <Link to="/settings" title="Settings & Sync" aria-label="Settings & Sync">
+              <Link
+                to="/settings"
+                title={currentUser?.email ? `Logged in: ${currentUser.email}` : "Settings & Sync"}
+                aria-label="Settings & Sync"
+              >
                 <Settings className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                {currentUser && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-2 ring-background"></span>
+                  </span>
+                )}
               </Link>
             </Button>
           </div>
