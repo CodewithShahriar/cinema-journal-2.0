@@ -159,17 +159,78 @@ function Home() {
     }
   }
 
-  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  // Infinite looping track with cloned boundaries: [Last, ...Originals, First]
+  const slides = useMemo(() => {
+    if (heroCandidates.length <= 1)
+      return heroCandidates.map((m) => ({ ...m, _slideKey: m.id }));
+    const first = heroCandidates[0];
+    const last = heroCandidates[heroCandidates.length - 1];
+    return [
+      { ...last, _slideKey: `clone-last-${last.id}` },
+      ...heroCandidates.map((m) => ({ ...m, _slideKey: `orig-${m.id}` })),
+      { ...first, _slideKey: `clone-first-${first.id}` },
+    ];
+  }, [heroCandidates]);
+
+  const [slideIndex, setSlideIndex] = useState(1);
+  const [withAnimation, setWithAnimation] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Active display index (0 to heroCandidates.length - 1)
+  const activeDisplayIndex = useMemo(() => {
+    if (heroCandidates.length <= 1) return 0;
+    return (slideIndex - 1 + heroCandidates.length) % heroCandidates.length;
+  }, [slideIndex, heroCandidates.length]);
+
+  const handleNext = useCallback(() => {
+    if (heroCandidates.length <= 1) return;
+    setWithAnimation(true);
+    setSlideIndex((prev) => prev + 1);
+  }, [heroCandidates.length]);
+
+  const handlePrev = useCallback(() => {
+    if (heroCandidates.length <= 1) return;
+    setWithAnimation(true);
+    setSlideIndex((prev) => prev - 1);
+  }, [heroCandidates.length]);
 
   // 5-second automatic rotation
   useEffect(() => {
     if (heroCandidates.length <= 1 || isPaused) return;
     const timer = setInterval(() => {
-      setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length);
+      handleNext();
     }, 5000);
     return () => clearInterval(timer);
-  }, [heroCandidates.length, isPaused]);
+  }, [heroCandidates.length, isPaused, handleNext]);
+
+  // Seamless jump without animation when reaching clone boundaries
+  const handleTransitionEnd = () => {
+    if (heroCandidates.length <= 1) return;
+    if (slideIndex >= heroCandidates.length + 1) {
+      // Reached cloned first slide at the end -> silently snap back to real first slide
+      setWithAnimation(false);
+      setSlideIndex(1);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setWithAnimation(true);
+        });
+      });
+    } else if (slideIndex <= 0) {
+      // Reached cloned last slide at the beginning -> silently snap back to real last slide
+      setWithAnimation(false);
+      setSlideIndex(heroCandidates.length);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setWithAnimation(true);
+        });
+      });
+    }
+  };
+
+  const jumpToSlide = (i: number) => {
+    setWithAnimation(true);
+    setSlideIndex(i + 1);
+  };
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -191,14 +252,11 @@ function Home() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
     if (isLeftSwipe) {
-      setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length);
+      handleNext();
     } else if (isRightSwipe) {
-      setActiveHeroIndex((prev) => (prev - 1 + heroCandidates.length) % heroCandidates.length);
+      handlePrev();
     }
   };
-
-  const safeIndex = activeHeroIndex < heroCandidates.length ? activeHeroIndex : 0;
-  const spotlight = heroCandidates[safeIndex];
 
   const [trailerMovie, setTrailerMovie] = useState<{ id: number; title: string } | null>(null);
   const [wrappedOpen, setWrappedOpen] = useState(false);
@@ -215,16 +273,23 @@ function Home() {
           onTouchEnd={onTouchEnd}
           className="group/hero relative mb-6 sm:mb-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl transition-all h-[440px] sm:h-[480px] md:h-[540px] lg:h-[620px] xl:h-[680px] select-none"
         >
-          {/* Horizontal Slider Track for Smooth Right-to-Left Slide Transitions */}
+          {/* Horizontal Slider Track for Seamless Infinite Right-to-Left Slide Transitions */}
           <div
-            className="flex h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-transform"
-            style={{ transform: `translateX(-${safeIndex * 100}%)` }}
+            onTransitionEnd={handleTransitionEnd}
+            className={`flex h-full w-full ${
+              withAnimation
+                ? "transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]"
+                : "transition-none"
+            } will-change-transform`}
+            style={{
+              transform: `translateX(-${(heroCandidates.length > 1 ? slideIndex : 0) * 100}%)`,
+            }}
           >
-            {heroCandidates.map((c) => {
+            {slides.map((c) => {
               const bg = c.cached?.backdrop || c.cached?.poster;
               return (
                 <div
-                  key={c.id}
+                  key={c._slideKey}
                   className="relative h-full w-full shrink-0 flex flex-col justify-end bg-zinc-950 overflow-hidden"
                 >
                   {/* Backdrop Image */}
@@ -317,13 +382,11 @@ function Home() {
           {heroCandidates.length > 1 && (
             <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-1.5 sm:gap-2">
               <span className="hidden sm:inline-flex text-[11px] font-mono text-white/70 bg-black/60 px-2 py-0.5 rounded-full border border-white/10 backdrop-blur-md">
-                {safeIndex + 1} / {heroCandidates.length}
+                {activeDisplayIndex + 1} / {heroCandidates.length}
               </span>
               <button
                 type="button"
-                onClick={() =>
-                  setActiveHeroIndex((prev) => (prev - 1 + heroCandidates.length) % heroCandidates.length)
-                }
+                onClick={handlePrev}
                 aria-label="Previous movie"
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md border border-white/15 flex items-center justify-center transition-all active:scale-90"
               >
@@ -331,9 +394,7 @@ function Home() {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length)
-                }
+                onClick={handleNext}
                 aria-label="Next movie"
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md border border-white/15 flex items-center justify-center transition-all active:scale-90"
               >
@@ -349,10 +410,10 @@ function Home() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setActiveHeroIndex(i)}
+                  onClick={() => jumpToSlide(i)}
                   aria-label={`Jump to movie ${i + 1}: ${c.cached?.title}`}
                   className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    i === safeIndex
+                    i === activeDisplayIndex
                       ? "w-7 bg-primary shadow-lg shadow-primary/60"
                       : "w-2 bg-white/30 hover:bg-white/60 hover:w-3"
                   }`}
