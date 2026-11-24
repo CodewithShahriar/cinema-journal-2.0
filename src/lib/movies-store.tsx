@@ -11,6 +11,7 @@ import type { TrackedMovie } from "./movie-types";
 import type { TmdbMovie } from "./tmdb-types";
 import {
   deleteMovieFromSupabase,
+  clearTombstoneInSupabase,
   getSupabaseUser,
   loadMoviesFromSupabase,
   saveMoviesToSupabase,
@@ -19,6 +20,44 @@ import { supabase, isSupabaseConfigured } from "./supabase";
 
 const STORAGE_KEY = "cinejournal.movies.v2";
 const BACKUP_KEY = "cinejournal.movies.backup";
+const DELETED_KEY = "cinejournal.deleted_ids.v2";
+
+interface DeletedTracker {
+  ids: Set<string>;
+  tmdbIds: Set<number>;
+}
+
+function getLocalDeleted(): DeletedTracker {
+  if (typeof window === "undefined") {
+    return { ids: new Set(), tmdbIds: new Set() };
+  }
+  try {
+    const raw = localStorage.getItem(DELETED_KEY);
+    if (!raw) return { ids: new Set(), tmdbIds: new Set() };
+    const parsed = JSON.parse(raw);
+    return {
+      ids: new Set(parsed.ids ?? []),
+      tmdbIds: new Set(parsed.tmdbIds ?? []),
+    };
+  } catch {
+    return { ids: new Set(), tmdbIds: new Set() };
+  }
+}
+
+function saveLocalDeleted(tracker: DeletedTracker) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      DELETED_KEY,
+      JSON.stringify({
+        ids: Array.from(tracker.ids),
+        tmdbIds: Array.from(tracker.tmdbIds),
+      }),
+    );
+  } catch {
+    // Non-critical local storage failure
+  }
+}
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "offline" | "error";
 
@@ -59,20 +98,36 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
  * Intelligent merger that unites local and cloud movie lists without losing any items.
  * If conflicts exist for the same movie ID or tmdbId, the most recently updated version wins.
  */
-export function mergeMovieLists(local: TrackedMovie[], cloud: TrackedMovie[]): TrackedMovie[] {
+/**
+ * Intelligent merger that unites local and cloud movie lists without losing any items.
+ * If conflicts exist for the same movie ID or tmdbId, the most recently updated version wins.
+ * Any movie whose ID or tmdbId is marked in deleted trackers will never be resurrected.
+ */
+export function mergeMovieLists(
+  local: TrackedMovie[],
+  cloud: TrackedMovie[],
+  deletedIds: Set<string> = new Set(),
+  deletedTmdbIds: Set<number> = new Set(),
+): TrackedMovie[] {
   const map = new Map<string, TrackedMovie>();
   const tmdbMap = new Map<number, string>(); // tmdbId -> movie.id
 
-  // 1. Populate all cloud movies
+  // 1. Populate all cloud movies, strictly skipping any tombstoned/deleted items
   for (const item of cloud) {
     if (!item?.id) continue;
+    if (deletedIds.has(item.id) || (item.tmdbId && deletedTmdbIds.has(item.tmdbId))) {
+      continue;
+    }
     map.set(item.id, item);
     if (item.tmdbId) tmdbMap.set(item.tmdbId, item.id);
   }
 
-  // 2. Safely merge local movies without dropping any
+  // 2. Safely merge local movies without dropping any, strictly skipping deleted items
   for (const localMovie of local) {
     if (!localMovie?.id) continue;
+    if (deletedIds.has(localMovie.id) || (localMovie.tmdbId && deletedTmdbIds.has(localMovie.tmdbId))) {
+      continue;
+    }
 
     const existingId = map.has(localMovie.id) ? localMovie.id : tmdbMap.get(localMovie.tmdbId);
 
@@ -116,11 +171,16 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
   // 1. Initial hydration from primary localStorage, fallback to backup if corrupted
   useEffect(() => {
     try {
+      const deleted = getLocalDeleted();
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMovies(parsed);
+          const valid = parsed.filter(
+            (m: TrackedMovie) =>
+              m?.id && !deleted.ids.has(m.id) && !(m.tmdbId && deleted.tmdbIds.has(m.tmdbId)),
+          );
+          setMovies(valid);
           setHydrated(true);
           return;
         }
@@ -131,8 +191,12 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
       if (backupRaw) {
         const backupParsed = JSON.parse(backupRaw);
         if (Array.isArray(backupParsed) && backupParsed.length > 0) {
-          setMovies(backupParsed);
-          localStorage.setItem(STORAGE_KEY, backupRaw);
+          const validBackup = backupParsed.filter(
+            (m: TrackedMovie) =>
+              m?.id && !deleted.ids.has(m.id) && !(m.tmdbId && deleted.tmdbIds.has(m.tmdbId)),
+          );
+          setMovies(validBackup);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(validBackup));
         }
       }
     } catch (e) {
@@ -155,7 +219,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     }
   }, [movies, hydrated]);
 
-  // 3. Robust Cloud Sync Logic
+  // 3. Robust Cloud Sync Logic with Cross-Device Deletion Support
   const performSync = useCallback(
     async (localList: TrackedMovie[]) => {
       if (!isSupabaseConfigured || isSyncingRef.current) return;
@@ -172,10 +236,17 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const cloudMovies = await loadMoviesFromSupabase();
+        const { activeMovies: cloudMovies, deletedIds: cloudDelIds, deletedTmdbIds: cloudDelTmdbIds } =
+          await loadMoviesFromSupabase();
 
-        // Intelligently merge local and cloud records
-        const merged = mergeMovieLists(localList, cloudMovies);
+        // Harmonize local and cloud deleted sets
+        const localDeleted = getLocalDeleted();
+        const allDeletedIds = new Set([...localDeleted.ids, ...cloudDelIds]);
+        const allDeletedTmdbIds = new Set([...localDeleted.tmdbIds, ...cloudDelTmdbIds]);
+        saveLocalDeleted({ ids: allDeletedIds, tmdbIds: allDeletedTmdbIds });
+
+        // Intelligently merge local and cloud records respecting deleted tombstones
+        const merged = mergeMovieLists(localList, cloudMovies, allDeletedIds, allDeletedTmdbIds);
 
         // Update local state if merged list differs
         const mergedIds = merged.map((m) => m.id).join(",");
@@ -184,7 +255,7 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
           setMovies(merged);
         }
 
-        // Save any un-synced items to cloud
+        // Save un-synced active items to cloud
         await saveMoviesToSupabase(merged, user.id);
         syncedMovieIds.current = new Set(merged.map((m) => m.id));
 
@@ -272,6 +343,14 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
     let duplicate = false;
     let result: TrackedMovie | null = null;
 
+    // Clear any tombstone so re-adding this movie works seamlessly
+    const localDeleted = getLocalDeleted();
+    if (localDeleted.tmdbIds.has(input.tmdbId)) {
+      localDeleted.tmdbIds.delete(input.tmdbId);
+      saveLocalDeleted(localDeleted);
+      void clearTombstoneInSupabase(input.tmdbId);
+    }
+
     setMovies((prev) => {
       const existing = prev.find((m) => m.tmdbId === input.tmdbId);
       if (existing) {
@@ -308,11 +387,23 @@ export function MoviesProvider({ children }: { children: ReactNode }) {
 
   const deleteMovie: MoviesContextType["deleteMovie"] = useCallback((id) => {
     setMovies((prev) => {
+      const target = prev.find((m) => m.id === id);
       const next = prev.filter((m) => m.id !== id);
       syncedMovieIds.current.delete(id);
-      void deleteMovieFromSupabase(id).catch((err) =>
-        console.warn("Could not delete from Supabase:", err),
-      );
+
+      if (target) {
+        // 1. Mark in local deleted tracker so no local hydration or re-sync brings it back
+        const localDeleted = getLocalDeleted();
+        localDeleted.ids.add(target.id);
+        if (target.tmdbId) localDeleted.tmdbIds.add(target.tmdbId);
+        saveLocalDeleted(localDeleted);
+
+        // 2. Delete from Supabase AND write tombstone so all other devices purge it too
+        void deleteMovieFromSupabase(target.id, target.tmdbId, currentUserId.current).catch((err) =>
+          console.warn("Could not delete from Supabase:", err),
+        );
+      }
+
       return next;
     });
   }, []);
