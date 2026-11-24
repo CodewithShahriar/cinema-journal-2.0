@@ -171,6 +171,32 @@ function Home() {
     return () => clearInterval(timer);
   }, [heroCandidates.length, isPaused]);
 
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length);
+    } else if (isRightSwipe) {
+      setActiveHeroIndex((prev) => (prev - 1 + heroCandidates.length) % heroCandidates.length);
+    }
+  };
+
   const safeIndex = activeHeroIndex < heroCandidates.length ? activeHeroIndex : 0;
   const spotlight = heroCandidates[safeIndex];
 
@@ -179,25 +205,112 @@ function Home() {
 
   return (
     <AppShell>
-      {/* Cinematic Netflix Spotlight Hero (5-Movie Auto Carousel) */}
-      {spotlight?.cached ? (
+      {/* Cinematic Netflix Spotlight Hero (5-Movie Auto Carousel with Right-to-Left Sliding) */}
+      {heroCandidates.length > 0 && heroCandidates[0]?.cached ? (
         <section
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
-          className="group/hero relative mb-6 sm:mb-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl transition-all"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          className="group/hero relative mb-6 sm:mb-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl transition-all h-[440px] sm:h-[480px] md:h-[540px] lg:h-[620px] xl:h-[680px] select-none"
         >
-          {/* Backdrop Image with smooth crossfade and gradient overlay */}
-          <div className="relative h-[420px] sm:h-[480px] md:h-[540px] lg:h-[620px] xl:h-[680px] w-full overflow-hidden bg-zinc-950">
-            {spotlight.cached.backdrop || spotlight.cached.poster ? (
-              <img
-                key={spotlight.id}
-                src={spotlight.cached.backdrop || spotlight.cached.poster}
-                alt={spotlight.cached.title}
-                className="h-full w-full object-cover object-[center_18%] filter brightness-[0.65] transition-all duration-700 ease-out animate-reveal-card"
-              />
-            ) : null}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent pointer-events-none" />
+          {/* Horizontal Slider Track for Smooth Right-to-Left Slide Transitions */}
+          <div
+            className="flex h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-transform"
+            style={{ transform: `translateX(-${safeIndex * 100}%)` }}
+          >
+            {heroCandidates.map((c) => {
+              const bg = c.cached?.backdrop || c.cached?.poster;
+              return (
+                <div
+                  key={c.id}
+                  className="relative h-full w-full shrink-0 flex flex-col justify-end bg-zinc-950 overflow-hidden"
+                >
+                  {/* Backdrop Image */}
+                  {bg ? (
+                    <img
+                      src={bg}
+                      alt={c.cached?.title}
+                      className="absolute inset-0 h-full w-full object-cover object-[center_18%] filter brightness-[0.65]"
+                    />
+                  ) : null}
+
+                  {/* Gradient overlays */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent pointer-events-none" />
+
+                  {/* Slide Content */}
+                  <div className="relative z-10 p-4 sm:p-8 md:p-12 lg:p-16">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      {c.status === "watchlist" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-primary backdrop-blur-md border border-primary/30">
+                          <Bookmark className="h-3 w-3 fill-primary" />
+                          Watchlist
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/20">
+                          <Film className="h-3 w-3" />
+                          Featured
+                        </span>
+                      )}
+
+                      {c.cached?.year && (
+                        <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/15">
+                          {c.cached.year}
+                        </span>
+                      )}
+
+                      {c.cached?.genres && c.cached.genres.length > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-medium text-zinc-300 backdrop-blur-md border border-white/15">
+                          {c.cached.genres.slice(0, 3).join(" • ")}
+                        </span>
+                      )}
+                    </div>
+
+                    <h1 className="font-display text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white max-w-3xl drop-shadow-lg leading-tight tracking-tight">
+                      {c.cached?.title}
+                    </h1>
+
+                    {c.cached?.overview && (
+                      <p className="mt-2 line-clamp-2 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 drop-shadow">
+                        {c.cached.overview}
+                      </p>
+                    )}
+
+                    {/* Mobile: 2-column grid. Desktop: Sleek inline row */}
+                    <div className="mt-3.5 sm:mt-6 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                      <Button
+                        asChild
+                        className="h-10 sm:h-12 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-xs sm:text-sm shadow-xl shadow-primary/35 transition-all hover:scale-105 active:scale-95 justify-center"
+                      >
+                        <Link to="/movie/$id" params={{ id: c.id }}>
+                          <Play className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 fill-white shrink-0" />
+                          <span className="truncate">View Details</span>
+                        </Link>
+                      </Button>
+
+                      {c.tmdbId ? (
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            setTrailerMovie({
+                              id: c.tmdbId,
+                              title: c.cached?.title || "Movie Trailer",
+                            })
+                          }
+                          variant="outline"
+                          className="h-10 sm:h-12 px-3 sm:px-5 rounded-xl sm:rounded-2xl border-white/20 bg-black/60 text-white backdrop-blur-md hover:bg-white/15 text-xs sm:text-sm font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg justify-center"
+                        >
+                          <Film className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 shrink-0" />
+                          <span className="truncate">Watch Trailer</span>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Top Controls: Manual Navigation & Indicator */}
@@ -247,81 +360,6 @@ function Home() {
               ))}
             </div>
           )}
-
-          {/* Hero Content */}
-          <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-8 md:p-12 lg:p-16">
-            <div className="mb-2 flex items-center gap-2">
-              {spotlight.status === "watchlist" ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-primary backdrop-blur-md border border-primary/30">
-                  <Bookmark className="h-3 w-3 fill-primary" />
-                  Watchlist
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/20">
-                  <Film className="h-3 w-3" />
-                  Featured
-                </span>
-              )}
-
-              {spotlight.cached.year && (
-                <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold text-white/90 backdrop-blur-md border border-white/15">
-                  {spotlight.cached.year}
-                </span>
-              )}
-
-              {spotlight.cached.genres && spotlight.cached.genres.length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-medium text-zinc-300 backdrop-blur-md border border-white/15">
-                  {spotlight.cached.genres.slice(0, 3).join(" • ")}
-                </span>
-              )}
-            </div>
-
-            <h1
-              key={`title-${spotlight.id}`}
-              className="font-display text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white max-w-3xl drop-shadow-lg leading-tight tracking-tight animate-reveal-card"
-            >
-              {spotlight.cached.title}
-            </h1>
-
-            {spotlight.cached.overview && (
-              <p
-                key={`desc-${spotlight.id}`}
-                className="mt-2 line-clamp-2 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 drop-shadow animate-reveal-card"
-              >
-                {spotlight.cached.overview}
-              </p>
-            )}
-
-            {/* Mobile: Perfect 2-column side-by-side grid. Desktop: Sleek inline row */}
-            <div className="mt-3.5 sm:mt-6 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button
-                asChild
-                className="h-10 sm:h-12 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-xs sm:text-sm shadow-xl shadow-primary/35 transition-all hover:scale-105 active:scale-95 justify-center"
-              >
-                <Link to="/movie/$id" params={{ id: spotlight.id }}>
-                  <Play className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 fill-white shrink-0" />
-                  <span className="truncate">View Details</span>
-                </Link>
-              </Button>
-
-              {spotlight.tmdbId ? (
-                <Button
-                  type="button"
-                  onClick={() =>
-                    setTrailerMovie({
-                      id: spotlight.tmdbId,
-                      title: spotlight.cached?.title || "Movie Trailer",
-                    })
-                  }
-                  variant="outline"
-                  className="h-10 sm:h-12 px-3 sm:px-5 rounded-xl sm:rounded-2xl border-white/20 bg-black/60 text-white backdrop-blur-md hover:bg-white/15 text-xs sm:text-sm font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg justify-center"
-                >
-                  <Film className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 shrink-0" />
-                  <span className="truncate">Watch Trailer</span>
-                </Button>
-              ) : null}
-            </div>
-          </div>
         </section>
       ) : (
         /* Welcome Hero for New Visitors */
