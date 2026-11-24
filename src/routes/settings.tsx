@@ -82,6 +82,18 @@ function SettingsPage() {
 
   // Listen for Password Recovery events (when user clicks link in reset email)
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (
+        hash.includes("type=recovery") ||
+        search.includes("type=recovery") ||
+        hash.includes("access_token=")
+      ) {
+        setAuthTab("reset_password");
+      }
+    }
+
     if (!supabase) return;
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
@@ -397,42 +409,156 @@ function SettingsPage() {
 
           {user?.email ? (
             /* Logged-in State */
-            <div className="space-y-4">
-              <div className="rounded-xl bg-background/60 p-4 border border-white/10">
-                <span className="text-xs text-muted-foreground">Logged in as:</span>
-                <p className="font-mono text-sm sm:text-base font-bold text-white mt-0.5">
-                  {user.email}
-                </p>
-                <p className="mt-2 text-xs text-emerald-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                  Your movies automatically synchronize with this account across mobile & desktop.
-                </p>
-              </div>
+            authTab === "reset_password" ? (
+              /* Set New Password Form for Authenticated / Recovery User */
+              <form onSubmit={handleSetNewPassword} className="space-y-4 pt-1 animate-reveal-card">
+                <div className="rounded-xl bg-primary/10 p-3.5 border border-primary/25">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-primary" />
+                    Set New Password
+                  </h4>
+                  <p className="text-xs text-zinc-300 mt-1">
+                    Enter and confirm your new password for <span className="text-white font-mono">{user.email}</span>.
+                  </p>
+                </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                <Button
-                  variant="outline"
-                  className="w-full justify-center text-muted-foreground hover:text-white hover:bg-white/5 border-white/10"
-                  onClick={() => {
-                    setEmail(user.email ?? "");
-                    setAuthTab("forgot");
-                  }}
-                >
-                  <KeyRound className="mr-2 h-4 w-4" />
-                  Reset Password
-                </Button>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      required
+                      className="h-10 w-full pl-9 pr-10 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full justify-center text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
-                  onClick={() => void handleLogOut()}
-                  disabled={authBusy}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </Button>
+                  {/* Password live strength meter */}
+                  {password && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-muted-foreground">Strength:</span>
+                        <span className="font-semibold text-white">{passwordStrength.label}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden flex gap-1">
+                        {[1, 2, 3, 4].map((step) => (
+                          <div
+                            key={step}
+                            className={`h-full flex-1 rounded-full transition-colors ${
+                              passwordStrength.score >= step ? passwordStrength.color : "bg-transparent"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      required
+                      className="h-10 w-full pl-9 pr-10 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                      title={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <Button
+                    type="submit"
+                    disabled={authBusy}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold text-sm h-11 rounded-xl shadow-lg shadow-primary/25"
+                  >
+                    {authBusy ? (
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                    )}
+                    Save New Password
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setAuthTab("signin");
+                      setPassword("");
+                      setConfirmPassword("");
+                    }}
+                    className="border-white/10 text-muted-foreground hover:text-white hover:bg-white/5 h-11 rounded-xl"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              /* Normal Logged-in Account Info */
+              <div className="space-y-4">
+                <div className="rounded-xl bg-background/60 p-4 border border-white/10">
+                  <span className="text-xs text-muted-foreground">Logged in as:</span>
+                  <p className="font-mono text-sm sm:text-base font-bold text-white mt-0.5">
+                    {user.email}
+                  </p>
+                  <p className="mt-2 text-xs text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    Your movies automatically synchronize with this account across mobile & desktop.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center text-muted-foreground hover:text-white hover:bg-white/5 border-white/10"
+                    onClick={() => {
+                      setPassword("");
+                      setConfirmPassword("");
+                      setAuthTab("reset_password");
+                    }}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Change Password
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                    onClick={() => void handleLogOut()}
+                    disabled={authBusy}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             /* Logged-out State: Tabs for Sign In, Create Account, and Forgot Password */
             <div className="space-y-4">
