@@ -29,17 +29,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[560px] bg-[radial-gradient(ellipse_at_top,rgb(229_9_20/28%),transparent_65%)]" />
       <div className="pointer-events-none fixed -top-40 right-0 -z-10 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgb(229_9_20/12%),transparent_70%)] blur-3xl" />
 
-      {/* Top Header - Responsive for both Desktop and Mobile */}
-      <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      {/* Top Header - Responsive for both Desktop and Mobile with Notch/Safe-Area Support */}
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-background/95 backdrop-blur-2xl pt-safe shadow-sm">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
           {/* Logo & Brand */}
           <div className="flex items-center gap-8">
-            <Link to="/" className="group flex items-center gap-2.5 transition-transform hover:scale-[1.02]">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 ring-1 ring-white/20">
-                <Film className="h-5 w-5 text-white transition-transform group-hover:rotate-12" />
+            <Link to="/" className="group flex items-center gap-2 sm:gap-2.5 transition-transform hover:scale-[1.02]">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 ring-1 ring-white/20">
+                <Film className="h-4 w-4 sm:h-5 sm:w-5 text-white transition-transform group-hover:rotate-12" />
               </div>
               <div className="flex flex-col">
-                <span className="font-display text-lg font-black tracking-tight text-white sm:text-xl">
+                <span className="font-display text-base font-black tracking-tight text-white sm:text-xl">
                   CINE<span className="text-primary">JOURNAL</span>
                 </span>
                 <span className="hidden -mt-1 text-[9px] font-medium tracking-widest text-muted-foreground uppercase sm:block">
@@ -71,12 +71,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Right Header Actions */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Quick Add Movie Button */}
             <Button
               asChild
               size="sm"
-              className="bg-primary hover:bg-primary/90 text-white font-medium text-xs rounded-xl shadow-lg shadow-primary/25 ring-1 ring-white/10"
+              className="bg-primary hover:bg-primary/90 text-white font-medium text-xs rounded-xl shadow-lg shadow-primary/25 ring-1 ring-white/10 h-8 sm:h-9 px-2.5 sm:px-3"
             >
               <Link to="/add" className="flex items-center gap-1.5">
                 <Plus className="h-4 w-4" />
@@ -84,15 +84,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             </Button>
 
-            {/* Settings Link */}
+            {/* Settings Link - Easily accessible on Mobile & Desktop */}
             <Button
               asChild
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-xl border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl border-white/15 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white shrink-0 active:scale-95 transition-transform"
             >
-              <Link to="/settings" title="Settings & Sync">
-                <Settings className="h-4 w-4" />
+              <Link to="/settings" title="Settings & Sync" aria-label="Settings & Sync">
+                <Settings className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
               </Link>
             </Button>
           </div>

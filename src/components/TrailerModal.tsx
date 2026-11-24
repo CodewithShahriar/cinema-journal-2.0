@@ -19,14 +19,14 @@ export function TrailerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] p-0 overflow-hidden bg-zinc-950 border-white/15 text-white shadow-2xl rounded-2xl">
-        <DialogHeader className="p-4 sm:p-5 border-b border-white/10 flex flex-row items-center justify-between gap-3 bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-950">
+      <DialogContent className="w-full max-w-full sm:max-w-4xl sm:w-[90vw] p-0 overflow-hidden bg-zinc-950 border-y sm:border border-white/15 text-white shadow-2xl rounded-none sm:rounded-2xl">
+        <DialogHeader className="p-3.5 sm:p-5 border-b border-white/10 flex flex-row items-center justify-between gap-3 bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-950">
           <div className="flex items-center gap-2.5 min-w-0 pr-8">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary border border-primary/30">
               <Film className="h-4 w-4" />
             </div>
-            <div className="min-w-0">
-              <DialogTitle className="text-base sm:text-lg font-bold text-white truncate tracking-tight">
+            <div className="min-w-0 text-left">
+              <DialogTitle className="text-base sm:text-lg font-bold text-white truncate tracking-tight text-left">
                 {title}
               </DialogTitle>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

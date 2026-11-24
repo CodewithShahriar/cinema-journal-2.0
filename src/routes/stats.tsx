@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Star, Film, Clock, BarChart3, TrendingUp, Trophy, Calendar, Sparkles } from "lucide-react";
+import { ArrowLeft, Star, Film, Clock, BarChart3, TrendingUp, Trophy, Calendar, Sparkles, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useMovies } from "@/lib/movies-store";
@@ -76,6 +76,19 @@ function StatsPage() {
       <PageHeader
         title="Cinema Analytics"
         subtitle="Detailed insights into your viewing habits and collection"
+        right={
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-xs text-white"
+          >
+            <Link to="/settings" className="flex items-center gap-1.5">
+              <Settings className="h-3.5 w-3.5 text-primary" />
+              <span>Settings & Sync</span>
+            </Link>
+          </Button>
+        }
       />
 
       {/* CineWrapped Annual Story Banner */}

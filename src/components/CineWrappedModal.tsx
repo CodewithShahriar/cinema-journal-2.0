@@ -154,7 +154,7 @@ Track your cinematic journey on CineJournal!`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl w-[95vw] p-0 overflow-hidden bg-black border-red-500/30 text-white shadow-2xl rounded-3xl">
+      <DialogContent className="w-full max-w-full sm:max-w-xl sm:w-[95vw] p-0 overflow-hidden bg-black border-y sm:border border-red-500/30 text-white shadow-2xl rounded-none sm:rounded-3xl">
         {/* Top Story Progress Bars */}
         <div className="absolute top-3 left-4 right-4 z-20 flex gap-1.5">
           {Array.from({ length: totalSlides }).map((_, i) => (

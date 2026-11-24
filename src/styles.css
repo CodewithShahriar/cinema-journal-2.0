@@ -147,6 +147,14 @@
   color: var(--gold);
 }
 
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 @utility animate-reveal-card {
   animation: revealCard 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
