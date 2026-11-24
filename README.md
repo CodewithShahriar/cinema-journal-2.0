@@ -16,6 +16,10 @@
   <img src="public/preview.jpg" alt="CineJournal Netflix-Style Dashboard Preview" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);" />
 </p>
 
+<p align="center">
+  <img src="public/movie-cards.jpg" alt="CineJournal Movie Cards with Genre & Runtime" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);" />
+</p>
+
 **CineJournal** is a sleek, ultra-modern cinema journal crafted for film lovers. Track your screenings, curate your watchlist, rate films, log personal reviews, watch official YouTube trailers directly in-app, and experience your personal **CineWrapped** annual movie journey.
 
 [Features](#-key-features) • [Tech Stack](#-tech-stack) • [Quick Start](#-quick-start) • [Environment Setup](#-environment-variables) • [Deployment](#-deployment-vercel)
@@ -28,12 +32,14 @@
 
 ### 🍿 Cinematic Netflix Obsidian & Crimson Aesthetic
 - **Obsidian Dark Mode (`#08080a`)** with crafted Netflix Crimson accents (`rgb(229, 9, 20)`) and amber star ratings.
-- **Widescreen Responsive Hero**: Majestic spotlight hero banner displaying movie backdrops, overview synopsis, and quick actions.
+- **Auto-Rotating Hero Carousel**: 5-movie dynamic hero spotlight rotating every 5 seconds, prioritizing your latest additions to your Watchlist with pause-on-hover, arrow navigators, and slide indicators.
+- **Rich Movie Cards with Genre & Runtime**: Posters feature personal ratings, release years, screening runtimes (`⏱ 97m`), and primary film genres (`• Drama, Thriller`) with smart truncation and desktop tooltips.
 - **Glassmorphism & Micro-animations**: Frosted glass cards, smooth reveal animations, and ambient glow on hover.
-- **Mobile-First Experience**: Floating bottom navigation dock, compact 2-column mobile cards, and touch-friendly quick action modals.
+- **Mobile-First Notch & Dock Architecture**: Tailored safe-area padding (`pt-safe`) ensuring notch/status-bar clearance, coupled with a floating bottom navigation dock backed by a seamless frosted gradient blur mask.
 
 ### 🎬 In-App Official Trailer Player
 - Pop open an official **16:9 YouTube trailer** modal for any movie directly from the hero banner or movie details page.
+- Centered cinematic modal on both mobile and desktop with zero-gap immersive view.
 - Smart trailer detection using TMDB API with prioritized official YouTube trailer streams and fallback search.
 - Clean backdrop dismissal with automatic audio pause and unmount on close.
 
@@ -44,15 +50,22 @@
 - **One-Click Share Ticket**: Formatted shareable summary ticket with emojis ready to copy and share with friends on social media.
 - **Annual Filter**: Toggle between specific years (e.g. 2026, 2025, 2024) or view your **All-Time** journey.
 
-### ⚡ Two-Way Offline-Safe Cloud Synchronization
+### ⚡ Two-Way Offline-Safe Cloud Synchronization & Live Indicators
+- **Live Sync & Account Navbar Pill**: Desktop status pill (`user ☁️`) with a pulsing green indicator dot confirming real-time cloud sync, along with a mobile settings badge.
+- **Persistent Tombstone Deletions**: Deleting movies from one device immediately syncs across all other authenticated devices without resurrection bugs.
 - **Zero-Data-Loss Architecture**: Local-first storage with automatic secondary backup fallback (`cinejournal.movies.v2` + backup).
 - **Two-Way Merging**: Seamless merge between local screenings and Supabase cloud database upon sign-in/sign-up—session changes never wipe your watchlist.
 - **Dual-Layer TMDB Fetch**: High-performance server functions paired with direct client-side fallback to ensure search never drops offline.
 
+### 🔍 Seamless Search & 1-Click Removal
+- **Non-Disruptive Movie Logging**: Log ratings, reviews, and watch dates from the TMDB search modal without being redirected away from your query.
+- **Quick 1-Click Remove (`X`)**: Instant removal button on search result cards for movies already in your journal, allowing quick undos directly from search.
+
 ### 🔒 Modern Authentication & Password Recovery
 - Built-in Supabase Auth with clean tabs for **Sign In**, **Create Account**, and **Password Reset**.
+- One-click secure password reset recovery link handling that directly opens the new password form.
 - Live password strength analyzer, show/hide eye toggle, and confirmation check.
-- Functional **Forgot Password** email recovery dispatch.
+- Idempotent database migrations for seamless CI/CD test previews on GitHub.
 
 ### 📊 Cinema Analytics & Letterboxd-Style Views
 - Complete `/stats` dashboard featuring total screen time, rating distributions, genre breakdowns, and release year timeline.
