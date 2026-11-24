@@ -63,7 +63,7 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
   const [review, setReview] = useState("");
 
   const { data: results, isFetching, error } = useTmdbSearch(q);
-  const { addByTmdb, hasTmdb } = useMovies();
+  const { movies, addByTmdb, hasTmdb, deleteMovie } = useMovies();
 
   // Instant 1-click Watchlist Add (no scrolling or form needed)
   const handleQuickWatchlist = (e: React.MouseEvent, movie: TmdbSearchResult) => {
@@ -181,7 +181,8 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
       {/* Results List */}
       <ul className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
         {(results ?? []).map((r) => {
-          const alreadyAdded = hasTmdb(r.id);
+          const tracked = movies.find((m) => m.tmdbId === r.id);
+          const alreadyAdded = Boolean(tracked);
 
           return (
             <li key={r.id}>
@@ -189,7 +190,7 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
                 onClick={() => !alreadyAdded && openLogDialog(r, "watched")}
                 className={`group flex items-center justify-between gap-3 rounded-2xl glass-card p-3 text-left border transition-all ${
                   alreadyAdded
-                    ? "border-white/5 opacity-65 cursor-default"
+                    ? "border-white/10 opacity-80"
                     : "border-white/10 hover:border-primary/50 cursor-pointer"
                 }`}
               >
@@ -213,10 +214,16 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
                       <h3 className="line-clamp-1 text-sm sm:text-base font-bold text-white group-hover:text-primary transition-colors">
                         {r.title}
                       </h3>
-                      {alreadyAdded && (
-                        <span className="shrink-0 flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                      {alreadyAdded && tracked && (
+                        <span
+                          className={`shrink-0 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                            tracked.status === "watched"
+                              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                              : "bg-sky-500/15 border-sky-500/30 text-sky-400"
+                          }`}
+                        >
                           <CheckCircle2 className="h-3 w-3" />
-                          In Journal
+                          {tracked.status === "watched" ? "Watched" : "In Watchlist"}
                         </span>
                       )}
                     </div>
@@ -251,7 +258,7 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
                   </div>
                 </div>
 
-                {/* Right Side Quick Action Buttons (Immediate Add / Log) */}
+                {/* Right Side Quick Action Buttons (Immediate Add / Log or 1-Click Remove) */}
                 <div className="flex items-center gap-1.5 shrink-0 pl-2">
                   {!alreadyAdded ? (
                     <>
@@ -280,6 +287,22 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
                         <span className="hidden sm:inline">Log / Rate</span>
                       </Button>
                     </>
+                  ) : tracked ? (
+                    /* 1-Click Cross / Remove Button if added by mistake */
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMovie(tracked.id);
+                        toast.success(`Removed "${r.title}" from journal`);
+                      }}
+                      title={`Remove "${r.title}" from journal`}
+                      className="h-8 px-2.5 rounded-xl border-destructive/30 bg-destructive/10 hover:bg-destructive hover:text-white text-destructive text-xs transition-all active:scale-95 flex items-center gap-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      <span className="text-[11px] font-medium hidden sm:inline">Remove</span>
+                    </Button>
                   ) : null}
                 </div>
               </div>
