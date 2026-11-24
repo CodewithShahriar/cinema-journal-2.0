@@ -268,6 +268,12 @@ function Home() {
                   {spotlight.cached.year}
                 </span>
               )}
+
+              {spotlight.cached.genres && spotlight.cached.genres.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-medium text-zinc-300 backdrop-blur-md border border-white/15">
+                  {spotlight.cached.genres.slice(0, 3).join(" • ")}
+                </span>
+              )}
             </div>
 
             <h1

@@ -30,6 +30,7 @@ export function MovieCard({ movie, variant = "grid" }: MovieCardProps) {
   const posterUrl = t?.poster ?? movie.cached?.poster;
   const year = t?.year ?? movie.cached?.year;
   const runtime = t?.runtime ?? movie.cached?.runtime;
+  const genres = t?.genres ?? movie.cached?.genres ?? [];
   const rating = movie.personalRating ?? (t?.voteAverage ? Number(t.voteAverage.toFixed(1)) : null);
 
   // Grid / Poster Card Layout (Netflix / Letterboxd Cinematic Card)
@@ -121,16 +122,27 @@ export function MovieCard({ movie, variant = "grid" }: MovieCardProps) {
             >
               {title}
             </Link>
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
               {runtime ? (
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
+                <span className="flex items-center gap-1 shrink-0">
+                  <Clock className="h-3 w-3 text-zinc-400" />
                   {runtime}m
                 </span>
               ) : null}
+              {runtime && genres.length > 0 ? (
+                <span className="text-white/20 shrink-0">•</span>
+              ) : null}
+              {genres.length > 0 ? (
+                <span
+                  className="truncate text-zinc-400 font-medium hover:text-zinc-200 transition-colors"
+                  title={genres.join(", ")}
+                >
+                  {genres.slice(0, 2).join(", ")}
+                </span>
+              ) : null}
               {movie.rewatchCount && movie.rewatchCount > 0 ? (
-                <span className="text-primary font-medium">
-                  {movie.rewatchCount}× rewatched
+                <span className="text-primary font-medium shrink-0 ml-auto pl-1">
+                  {movie.rewatchCount}×
                 </span>
               ) : null}
             </div>
@@ -208,6 +220,11 @@ export function MovieCard({ movie, variant = "grid" }: MovieCardProps) {
                 {runtime}m
               </span>
             ) : null}
+            {genres.length > 0 && (
+              <span className="inline-flex items-center text-zinc-400 font-medium">
+                {genres.slice(0, 2).join(", ")}
+              </span>
+            )}
             {rating != null && (
               <span className="inline-flex items-center gap-1 text-amber-400 font-semibold">
                 <Star className="h-3 w-3 fill-current" />
