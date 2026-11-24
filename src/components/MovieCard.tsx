@@ -30,7 +30,11 @@ export function MovieCard({ movie, variant = "grid" }: MovieCardProps) {
   const posterUrl = t?.poster ?? movie.cached?.poster;
   const year = t?.year ?? movie.cached?.year;
   const runtime = t?.runtime ?? movie.cached?.runtime;
-  const genres = t?.genres ?? movie.cached?.genres ?? [];
+  const genres = Array.isArray(t?.genres)
+    ? t.genres
+    : Array.isArray(movie.cached?.genres)
+      ? movie.cached.genres
+      : [];
   const rating = movie.personalRating ?? (t?.voteAverage ? Number(t.voteAverage.toFixed(1)) : null);
 
   // Grid / Poster Card Layout (Netflix / Letterboxd Cinematic Card)

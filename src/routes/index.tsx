@@ -26,6 +26,27 @@ import { CineWrappedModal } from "@/components/CineWrappedModal";
 
 export const Route = createFileRoute("/")({
   component: Home,
+  errorComponent: ({ error }) => {
+    return (
+      <AppShell>
+        <div className="py-16 text-center max-w-md mx-auto">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30">
+            <Film className="h-6 w-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Something went wrong</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {error?.message || "Could not load the cinema dashboard."}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-95"
+          >
+            Refresh Dashboard
+          </button>
+        </div>
+      </AppShell>
+    );
+  },
   head: () => ({
     meta: [
       { title: "CineJournal — Netflix Style Cinema Tracker" },
@@ -125,14 +146,14 @@ function Home() {
   const pct = total ? Math.round((watched.length / total) * 100) : 0;
 
   const recent = [...watched]
-    .sort((a, b) => (b.watchDate ?? "").localeCompare(a.watchDate ?? ""))
+    .sort((a, b) => String(b.watchDate ?? "").localeCompare(String(a.watchDate ?? "")))
     .slice(0, 6);
 
   const upNext = [...watchlist].slice(0, 6);
 
   // 1st Priority: Latest additions to Watchlist (sorted by createdAt descending)
   const recentWatchlist = [...watchlist].sort((a, b) =>
-    (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
+    String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))
   );
 
   // Collect up to 5 unique movies for the rotating Hero banner
@@ -210,20 +231,28 @@ function Home() {
       // Reached cloned first slide at the end -> silently snap back to real first slide
       setWithAnimation(false);
       setSlideIndex(1);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setWithAnimation(true);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            setWithAnimation(true);
+          });
         });
-      });
+      } else {
+        setWithAnimation(true);
+      }
     } else if (slideIndex <= 0) {
       // Reached cloned last slide at the beginning -> silently snap back to real last slide
       setWithAnimation(false);
       setSlideIndex(heroCandidates.length);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setWithAnimation(true);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            setWithAnimation(true);
+          });
         });
-      });
+      } else {
+        setWithAnimation(true);
+      }
     }
   };
 
@@ -326,7 +355,7 @@ function Home() {
                         </span>
                       )}
 
-                      {c.cached?.genres && c.cached.genres.length > 0 && (
+                      {Array.isArray(c.cached?.genres) && c.cached.genres.length > 0 && (
                         <span className="inline-flex items-center rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] sm:text-xs font-medium text-zinc-300 backdrop-blur-md border border-white/15">
                           {c.cached.genres.slice(0, 3).join(" • ")}
                         </span>

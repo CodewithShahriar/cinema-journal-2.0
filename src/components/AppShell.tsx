@@ -38,7 +38,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       setCurrentUser(session?.user ?? null);
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      sub?.subscription?.unsubscribe();
+    };
   }, []);
 
   return (
