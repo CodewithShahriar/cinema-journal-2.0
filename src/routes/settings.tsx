@@ -42,6 +42,7 @@ import {
   signInWithEmail,
   signOut,
   signUpWithEmail,
+  resendConfirmationEmail,
   resetPasswordForEmail,
   updateUserPassword,
   isValidEmail,
@@ -66,6 +67,8 @@ function SettingsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
 
   const [syncBusy, setSyncBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -176,7 +179,16 @@ function SettingsPage() {
       await syncNow();
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Could not sign in.";
-      toast.error(msg);
+      if (
+        msg.toLowerCase().includes("email not confirmed") ||
+        msg.toLowerCase().includes("invalid login credentials")
+      ) {
+        toast.error(
+          "Invalid login credentials or email not confirmed yet. Check your Spam folder, or in Supabase disable 'Confirm email'.",
+        );
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setAuthBusy(false);
     }
@@ -205,16 +217,42 @@ function SettingsPage() {
         setUser(activeUser);
         setPassword("");
         setConfirmPassword("");
+        setSignUpSuccess(false);
         toast.success("Account created! Uploading journal to cloud...");
         await syncNow();
+      } else if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        toast.warning("This email is already registered! Please sign in or use password reset.");
+        setPassword("");
+        setConfirmPassword("");
+        setAuthTab("signin");
       } else {
-        toast.success("Account created! Check your email inbox to confirm your account.");
+        setSignUpSuccess(true);
+        setPassword("");
+        setConfirmPassword("");
+        toast.success("Account registered! Please confirm via email or in Supabase.");
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Could not create account.";
       toast.error(msg);
     } finally {
       setAuthBusy(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!isValidEmail(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setResendBusy(true);
+    try {
+      await resendConfirmationEmail(email);
+      toast.success("Confirmation email resent! Please check Inbox and Spam folder.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not resend email.";
+      toast.error(msg);
+    } finally {
+      setResendBusy(false);
     }
   };
 
@@ -505,116 +543,199 @@ function SettingsPage() {
               )}
 
               {/* Mode 2: Create Account Form */}
-              {authTab === "signup" && (
-                <form onSubmit={handleSignUp} className="space-y-3 pt-1 animate-reveal-card">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        className="h-10 w-full pl-9 pr-3 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Choose Password
-                    </label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="At least 6 characters"
-                        autoComplete="new-password"
-                        required
-                        className="h-10 w-full pl-9 pr-10 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
-                        title={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-
-                    {/* Live Password Strength Meter */}
-                    {password && (
-                      <div className="mt-1.5 space-y-1">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-muted-foreground">Strength:</span>
-                          <span className="font-semibold text-white">{passwordStrength.label}</span>
+              {authTab === "signup" &&
+                (signUpSuccess ? (
+                  <div className="space-y-4 pt-1 animate-reveal-card">
+                    <div className="rounded-2xl bg-gradient-to-b from-primary/15 to-transparent p-5 border border-primary/30 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center border border-primary/30 shrink-0">
+                          <Mail className="h-5 w-5" />
                         </div>
-                        <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden flex gap-1">
-                          {[1, 2, 3, 4].map((step) => (
-                            <div
-                              key={step}
-                              className={`h-full flex-1 rounded-full transition-colors ${
-                                passwordStrength.score >= step ? passwordStrength.color : "bg-transparent"
-                              }`}
-                            />
-                          ))}
+                        <div>
+                          <h4 className="font-bold text-white text-sm">Confirmation Email Sent!</h4>
+                          <p className="text-xs text-muted-foreground truncate max-w-[280px]">
+                            Sent to <span className="text-white font-medium">{email}</span>
+                          </p>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Re-enter password"
-                        autoComplete="new-password"
-                        required
-                        className="h-10 w-full pl-9 pr-10 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
-                        title={showConfirmPassword ? "Hide password" : "Show password"}
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+                      <div className="text-xs text-zinc-300 space-y-2 bg-black/40 rounded-xl p-3 border border-white/5">
+                        <p className="flex items-start gap-2">
+                          <span className="text-primary font-bold">1.</span>
+                          <span>Check your <strong>Spam / Junk</strong> folder if not found in your Inbox.</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="text-primary font-bold">2.</span>
+                          <span>Click the confirmation link inside the email to activate your account.</span>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setSignUpSuccess(false);
+                            setAuthTab("signin");
+                          }}
+                          className="flex-1 border-white/10 hover:bg-white/5 text-white text-xs h-10"
+                        >
+                          <UserRound className="mr-2 h-4 w-4 text-primary" />
+                          Go to Sign In
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => void handleResendEmail()}
+                          disabled={resendBusy}
+                          className="flex-1 bg-white/10 hover:bg-white/15 text-white text-xs h-10"
+                        >
+                          {resendBusy ? (
+                            <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                          )}
+                          Resend Email
+                        </Button>
+                      </div>
                     </div>
+
+                    {/* Supabase Dashboard Guide */}
+                    <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3.5 text-[11px] text-amber-200/90 space-y-1.5">
+                      <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Developer / Supabase Quick Tip:
+                      </div>
+                      <p>Email delay or not arriving? You can verify immediately from your Supabase Dashboard:</p>
+                      <ul className="list-disc list-inside space-y-1 text-amber-200/80 pl-1">
+                        <li>
+                          <strong>Instant activate:</strong> Go to <em>Authentication → Users</em>, find your email, and click <em>"Confirm user"</em>.
+                        </li>
+                        <li>
+                          <strong>No email confirmation needed:</strong> In <em>Authentication → Providers → Email</em>, turn OFF <em>"Confirm email"</em>.
+                        </li>
+                      </ul>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSignUpSuccess(false)}
+                      className="text-xs text-muted-foreground hover:text-white flex items-center gap-1 mx-auto"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      Back to Sign Up Form
+                    </button>
                   </div>
+                ) : (
+                  <form onSubmit={handleSignUp} className="space-y-3 pt-1 animate-reveal-card">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          required
+                          className="h-10 w-full pl-9 pr-3 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                    </div>
 
-                  <p className="text-[11px] text-muted-foreground pt-1">
-                    Your current local movies will be automatically uploaded and saved to this account!
-                  </p>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Choose Password
+                      </label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="At least 6 characters"
+                          autoComplete="new-password"
+                          required
+                          className="h-10 w-full pl-9 pr-10 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
 
-                  <Button
-                    type="submit"
-                    disabled={authBusy}
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-sm h-11 rounded-xl shadow-lg shadow-primary/25 mt-2"
-                  >
-                    {authBusy ? (
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                    )}
-                    Create Account & Upload
-                  </Button>
-                </form>
-              )}
+                      {/* Live Password Strength Meter */}
+                      {password && (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted-foreground">Strength:</span>
+                            <span className="font-semibold text-white">{passwordStrength.label}</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden flex gap-1">
+                            {[1, 2, 3, 4].map((step) => (
+                              <div
+                                key={step}
+                                className={`h-full flex-1 rounded-full transition-colors ${
+                                  passwordStrength.score >= step ? passwordStrength.color : "bg-transparent"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter password"
+                          autoComplete="new-password"
+                          required
+                          className="h-10 w-full pl-9 pr-10 rounded-xl border border-white/10 bg-background/70 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white placeholder:text-muted-foreground/60"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                          title={showConfirmPassword ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground pt-1">
+                      Your current local movies will be automatically uploaded and saved to this account!
+                    </p>
+
+                    <Button
+                      type="submit"
+                      disabled={authBusy}
+                      className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-sm h-11 rounded-xl shadow-lg shadow-primary/25 mt-2"
+                    >
+                      {authBusy ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                      )}
+                      Create Account & Upload
+                    </Button>
+                  </form>
+                ))}
 
               {/* Mode 3: Forgot Password Request Form */}
               {authTab === "forgot" && (

@@ -65,6 +65,22 @@ export async function signUpWithEmail(email: string, password: string) {
   return data;
 }
 
+export async function resendConfirmationEmail(email: string) {
+  const client = requireSupabase();
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/settings` : undefined;
+
+  const { data, error } = await client.auth.resend({
+    type: "signup",
+    email: email.trim(),
+    options: {
+      emailRedirectTo: redirectTo,
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const client = requireSupabase();
   const { data, error } = await client.auth.signInWithPassword({
