@@ -7,6 +7,7 @@ import {
   tmdbSearch,
   tmdbGetCredits,
   tmdbGetRecommendations,
+  tmdbGetExtendedPlot,
 } from "./tmdb.functions";
 import { useMovies } from "./movies-store";
 import type {
@@ -91,6 +92,11 @@ async function directClientGetMovie(id: number): Promise<TmdbMovie> {
     overview: (r.overview as string) || undefined,
     voteAverage: typeof r.vote_average === "number" ? (r.vote_average as number) : undefined,
     voteCount: typeof r.vote_count === "number" ? (r.vote_count as number) : undefined,
+    tagline: (r.tagline as string) || undefined,
+    budget: typeof r.budget === "number" && r.budget > 0 ? (r.budget as number) : undefined,
+    revenue: typeof r.revenue === "number" && r.revenue > 0 ? (r.revenue as number) : undefined,
+    originalLanguage: (r.original_language as string) || undefined,
+    productionCompanies: ((r.production_companies as Array<{ name: string }>) ?? []).map((c) => c.name),
   };
 }
 
@@ -329,5 +335,24 @@ export function useTmdbRecommendations(tmdbId: number, enabled = true) {
     },
     enabled: enabled && Number.isFinite(tmdbId) && tmdbId > 0,
     staleTime: 1000 * 60 * 60 * 24, // 24h
+  });
+}
+
+/** React Query hook to get extended Wikipedia plot or detailed synopsis */
+export function useTmdbExtendedPlot(title?: string, year?: number, enabled = true) {
+  const fetcher = useServerFn(tmdbGetExtendedPlot);
+
+  return useQuery({
+    queryKey: ["tmdb-extended-plot", title, year],
+    queryFn: async (): Promise<{ plot?: string; summary?: string } | null> => {
+      if (!title) return null;
+      try {
+        return await fetcher({ data: { title, year } });
+      } catch {
+        return null;
+      }
+    },
+    enabled: enabled && Boolean(title && title !== "Loading…"),
+    staleTime: 1000 * 60 * 60 * 24 * 7, // 7 days
   });
 }

@@ -11,6 +11,11 @@ export interface TmdbMovie {
   overview?: string;
   voteAverage?: number;
   voteCount?: number;
+  tagline?: string;
+  budget?: number;
+  revenue?: number;
+  originalLanguage?: string;
+  productionCompanies?: string[];
 }
 
 export interface TmdbSearchResult {

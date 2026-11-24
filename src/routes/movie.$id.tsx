@@ -18,12 +18,23 @@ import {
   Users,
   Clapperboard,
   Plus,
+  DollarSign,
+  TrendingUp,
+  Globe,
+  BookOpen,
+  ChevronDown,
+  Bookmark,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { PosterFallback } from "@/components/MovieCard";
 import { useMovies } from "@/lib/movies-store";
-import { useTmdbMovie, useTmdbCredits, useTmdbRecommendations } from "@/lib/tmdb";
+import {
+  useTmdbMovie,
+  useTmdbCredits,
+  useTmdbRecommendations,
+  useTmdbExtendedPlot,
+} from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { TrailerModal } from "@/components/TrailerModal";
 import {
@@ -58,6 +69,17 @@ export const Route = createFileRoute("/movie/$id")({
   ),
 });
 
+function formatCurrency(amount?: number): string | null {
+  if (!amount || amount <= 0) return null;
+  if (amount >= 1_000_000_000) {
+    return `$${(amount / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (amount >= 1_000_000) {
+    return `$${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  return `$${amount.toLocaleString()}`;
+}
+
 function MovieDetail() {
   const { id } = Route.useParams();
   const {
@@ -72,6 +94,7 @@ function MovieDetail() {
   const navigate = useNavigate();
   const movie = movies.find((m) => m.id === id);
   const [trailerOpen, setTrailerOpen] = useState(false);
+  const [showFullPlot, setShowFullPlot] = useState(false);
 
   const { data: t, isLoading, isFallback, error } = useTmdbMovie(
     movie?.tmdbId ?? 0,
@@ -96,6 +119,12 @@ function MovieDetail() {
   const voteAverage = t?.voteAverage ?? movie.cached?.voteAverage;
   const genres = t?.genres ?? movie.cached?.genres ?? [];
   const overview = t?.overview ?? movie.cached?.overview;
+  const tagline = t?.tagline;
+  const budget = t?.budget;
+  const revenue = t?.revenue;
+  const originalLanguage = t?.originalLanguage;
+
+  const { data: extendedPlotData } = useTmdbExtendedPlot(title, year);
 
   return (
     <AppShell>
@@ -312,6 +341,15 @@ function MovieDetail() {
                 {title}
               </h1>
 
+              {/* Tagline */}
+              {tagline && (
+                <div className="mt-2 text-xs sm:text-sm italic font-medium text-primary/90 flex items-center gap-1.5">
+                  <span className="text-base text-primary/40 font-serif">“</span>
+                  <span>{tagline}</span>
+                  <span className="text-base text-primary/40 font-serif">”</span>
+                </div>
+              )}
+
               {/* Genres */}
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {genres.map((g) => (
@@ -324,8 +362,8 @@ function MovieDetail() {
                 ))}
               </div>
 
-              {/* Personal Rating Card */}
-              {movie.personalRating != null && (
+              {/* Personal Rating Card (Watched) OR Watchlist Prompt Banner (Watchlist) */}
+              {movie.personalRating != null ? (
                 <div className="mt-6 flex items-center justify-between rounded-2xl bg-gradient-to-r from-amber-500/15 to-transparent p-4 border border-amber-500/25">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40">
@@ -344,17 +382,158 @@ function MovieDetail() {
                     <span className="text-xs font-semibold text-primary rounded-full bg-primary/10 px-3 py-1 border border-primary/20">
                       Rewatched {movie.rewatchCount}×
                     </span>
+                  ) : movie.watchDate ? (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(movie.watchDate).toLocaleDateString(undefined, { dateStyle: "medium" })}
+                    </span>
                   ) : null}
                 </div>
-              )}
+              ) : movie.status === "watchlist" ? (
+                <div className="mt-5 flex items-center justify-between rounded-2xl bg-gradient-to-r from-primary/15 via-white/[0.04] to-transparent p-3.5 sm:p-4 border border-primary/25 shadow-lg shadow-black/30">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/30 shrink-0">
+                      <Bookmark className="h-5 w-5 fill-current" />
+                    </div>
+                    <div>
+                      <div className="text-xs sm:text-sm font-bold text-white">Up Next on Watchlist</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Planned for movie night • Ready to watch?
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      markWatched(movie.id);
+                      toast.success("Marked as watched! You can now rate and review.");
+                    }}
+                    className="rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-xs shadow-md shadow-primary/25 shrink-0"
+                  >
+                    <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                    Mark Watched
+                  </Button>
+                </div>
+              ) : null}
 
-              {/* Overview */}
-              {overview && (
-                <div className="mt-6">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+              {/* Storyline Overview & Extended Synopsis */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5 text-primary" />
                     Storyline Overview
                   </h3>
-                  <p className="text-sm leading-relaxed text-zinc-300">{overview}</p>
+                  {extendedPlotData?.plot && (
+                    <button
+                      type="button"
+                      onClick={() => setShowFullPlot((prev) => !prev)}
+                      className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                    >
+                      {showFullPlot ? "Show Short Synopsis" : "Read Full Story / Plot"}
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 transition-transform ${showFullPlot ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {showFullPlot && extendedPlotData?.plot ? (
+                  <div className="rounded-2xl bg-black/40 p-4 border border-white/10 text-sm leading-relaxed text-zinc-300 space-y-3 max-h-80 overflow-y-auto pr-3 scrollbar-thin">
+                    {extendedPlotData.plot.split("\n\n").map((para, i) => (
+                      <p key={i}>{para}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm sm:text-base leading-relaxed text-zinc-200/90 font-normal">
+                    {overview || extendedPlotData?.summary || "No overview available for this film."}
+                  </p>
+                )}
+              </div>
+
+              {/* Key Film Facts Grid (Director, Budget, Box Office, Language) */}
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {/* Director */}
+                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Clapperboard className="h-3 w-3 text-primary" />
+                    Director
+                  </div>
+                  <div
+                    className="mt-1 text-xs font-semibold text-white truncate"
+                    title={credits?.directors?.[0]?.name || "Not specified"}
+                  >
+                    {credits?.directors?.[0]?.name || "Not specified"}
+                  </div>
+                </div>
+
+                {/* Budget */}
+                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="h-3 w-3 text-emerald-400" />
+                    Budget
+                  </div>
+                  <div className="mt-1 text-xs font-semibold text-white">
+                    {formatCurrency(budget) || "N/A"}
+                  </div>
+                </div>
+
+                {/* Box Office / Rating */}
+                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3 text-amber-400" />
+                    Box Office
+                  </div>
+                  <div className="mt-1 text-xs font-semibold text-white truncate">
+                    {formatCurrency(revenue) || (voteAverage ? `TMDB ${voteAverage.toFixed(1)}` : "N/A")}
+                  </div>
+                </div>
+
+                {/* Language */}
+                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Globe className="h-3 w-3 text-sky-400" />
+                    Language
+                  </div>
+                  <div className="mt-1 text-xs font-semibold text-white uppercase">
+                    {originalLanguage || "English"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Starring Cast Mini Preview in Hero */}
+              {credits?.cast && credits.cast.length > 0 && (
+                <div className="mt-6">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                    Starring Cast
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {credits.cast.slice(0, 4).map((c) => (
+                      <div
+                        key={c.id}
+                        className="inline-flex items-center gap-2.5 rounded-xl bg-white/[0.04] p-1.5 pr-3 border border-white/10 hover:border-primary/30 transition-colors"
+                      >
+                        {c.profilePath ? (
+                          <img
+                            src={c.profilePath}
+                            alt={c.name}
+                            className="h-7 w-7 rounded-lg object-cover ring-1 ring-white/10 shrink-0"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-800 text-[10px] font-bold text-zinc-300 shrink-0">
+                            {c.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="text-left">
+                          <div className="text-xs font-semibold text-white leading-tight">{c.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px] leading-tight">
+                            {c.character}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

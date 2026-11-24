@@ -97,7 +97,55 @@ export const tmdbGetMovie = createServerFn({ method: "GET" })
       overview: (r.overview as string) || undefined,
       voteAverage: typeof r.vote_average === "number" ? (r.vote_average as number) : undefined,
       voteCount: typeof r.vote_count === "number" ? (r.vote_count as number) : undefined,
+      tagline: (r.tagline as string) || undefined,
+      budget: typeof r.budget === "number" && r.budget > 0 ? (r.budget as number) : undefined,
+      revenue: typeof r.revenue === "number" && r.revenue > 0 ? (r.revenue as number) : undefined,
+      originalLanguage: (r.original_language as string) || undefined,
+      productionCompanies: ((r.production_companies as Array<{ name: string }>) ?? []).map((c) => c.name),
     };
+  });
+
+export const tmdbGetExtendedPlot = createServerFn({ method: "GET" })
+  .validator((d: { title: string; year?: number }) => ({
+    title: String(d?.title ?? ""),
+    year: d?.year ? Number(d.year) : undefined,
+  }))
+  .handler(async ({ data }): Promise<{ plot?: string; summary?: string } | null> => {
+    if (!data.title) return null;
+    try {
+      const cleanTitle = data.title.trim().replace(/ /g, "_");
+      const tryFetch = async (queryName: string) => {
+        const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=true&titles=${encodeURIComponent(queryName)}&format=json`;
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) return null;
+        const json = (await res.json()) as { query?: { pages?: Record<string, { extract?: string }> } };
+        const pages = json?.query?.pages ?? {};
+        const pid = Object.keys(pages)[0];
+        if (!pid || pid === "-1" || !pages[pid]?.extract) return null;
+        return pages[pid].extract;
+      };
+
+      let text = await tryFetch(cleanTitle);
+      if (!text || text.length < 100) {
+        text = await tryFetch(`${cleanTitle}_(film)`);
+      }
+      if (!text && data.year) {
+        text = await tryFetch(`${cleanTitle}_(${data.year}_film)`);
+      }
+      if (!text) return null;
+
+      const plotMatch = text.match(/== Plot ==\n([\s\S]*?)(?=\n== )/);
+      const plot = plotMatch ? plotMatch[1].trim() : undefined;
+      // Get the intro section before the first heading
+      const introMatch = text.split(/\n== /)[0]?.trim();
+
+      return {
+        plot,
+        summary: introMatch || text.slice(0, 600).trim(),
+      };
+    } catch {
+      return null;
+    }
   });
 
 export const tmdbGetVideos = createServerFn({ method: "GET" })
