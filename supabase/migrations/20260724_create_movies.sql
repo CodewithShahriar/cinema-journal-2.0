@@ -15,22 +15,27 @@ create index if not exists movies_user_id_updated_at_idx
 
 alter table public.movies enable row level security;
 
+-- Policies (drop if exists first so migrations are idempotent and pass CI checks)
+drop policy if exists "Users can view their own movies" on public.movies;
 create policy "Users can view their own movies"
   on public.movies for select
   to authenticated
   using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can add their own movies" on public.movies;
 create policy "Users can add their own movies"
   on public.movies for insert
   to authenticated
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can update their own movies" on public.movies;
 create policy "Users can update their own movies"
   on public.movies for update
   to authenticated
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can delete their own movies" on public.movies;
 create policy "Users can delete their own movies"
   on public.movies for delete
   to authenticated
