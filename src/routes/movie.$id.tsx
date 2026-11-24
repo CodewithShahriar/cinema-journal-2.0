@@ -18,9 +18,6 @@ import {
   Users,
   Clapperboard,
   Plus,
-  DollarSign,
-  TrendingUp,
-  Globe,
   BookOpen,
   ChevronDown,
   Bookmark,
@@ -294,7 +291,7 @@ function MovieDetail() {
             </div>
 
             {/* Right Column: Title, Metadata, Overview, and Review */}
-            <div className="flex-1 min-w-0 pt-2 sm:pt-4">
+            <div className="flex-1 min-w-0 pt-2 sm:pt-6 md:pt-12 lg:pt-16">
               {(isFallback || error) && (
                 <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-0.5 text-xs text-amber-400 border border-amber-500/20">
                   <RefreshCcw className="h-3 w-3" />
@@ -449,93 +446,6 @@ function MovieDetail() {
                   </p>
                 )}
               </div>
-
-              {/* Key Film Facts Grid (Director, Budget, Box Office, Language) */}
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {/* Director */}
-                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <Clapperboard className="h-3 w-3 text-primary" />
-                    Director
-                  </div>
-                  <div
-                    className="mt-1 text-xs font-semibold text-white truncate"
-                    title={credits?.directors?.[0]?.name || "Not specified"}
-                  >
-                    {credits?.directors?.[0]?.name || "Not specified"}
-                  </div>
-                </div>
-
-                {/* Budget */}
-                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <DollarSign className="h-3 w-3 text-emerald-400" />
-                    Budget
-                  </div>
-                  <div className="mt-1 text-xs font-semibold text-white">
-                    {formatCurrency(budget) || "N/A"}
-                  </div>
-                </div>
-
-                {/* Box Office / Rating */}
-                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3 text-amber-400" />
-                    Box Office
-                  </div>
-                  <div className="mt-1 text-xs font-semibold text-white truncate">
-                    {formatCurrency(revenue) || (voteAverage ? `TMDB ${voteAverage.toFixed(1)}` : "N/A")}
-                  </div>
-                </div>
-
-                {/* Language */}
-                <div className="rounded-xl bg-white/[0.04] p-2.5 sm:p-3 border border-white/5">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <Globe className="h-3 w-3 text-sky-400" />
-                    Language
-                  </div>
-                  <div className="mt-1 text-xs font-semibold text-white uppercase">
-                    {originalLanguage || "English"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Starring Cast Mini Preview in Hero */}
-              {credits?.cast && credits.cast.length > 0 && (
-                <div className="mt-6">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5 flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                    Starring Cast
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {credits.cast.slice(0, 4).map((c) => (
-                      <div
-                        key={c.id}
-                        className="inline-flex items-center gap-2.5 rounded-xl bg-white/[0.04] p-1.5 pr-3 border border-white/10 hover:border-primary/30 transition-colors"
-                      >
-                        {c.profilePath ? (
-                          <img
-                            src={c.profilePath}
-                            alt={c.name}
-                            className="h-7 w-7 rounded-lg object-cover ring-1 ring-white/10 shrink-0"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-800 text-[10px] font-bold text-zinc-300 shrink-0">
-                            {c.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="text-left">
-                          <div className="text-xs font-semibold text-white leading-tight">{c.name}</div>
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px] leading-tight">
-                            {c.character}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* User Review */}
               {movie.review && (
