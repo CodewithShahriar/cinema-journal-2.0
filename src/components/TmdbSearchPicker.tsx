@@ -29,7 +29,6 @@ import {
 import { useTmdbSearch } from "@/lib/tmdb";
 import { useMovies } from "@/lib/movies-store";
 import type { TmdbSearchResult } from "@/lib/tmdb-types";
-import { useNavigate } from "@tanstack/react-router";
 
 // TMDB genre id -> name
 const TMDB_GENRES: Record<number, string> = {
@@ -65,7 +64,6 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
 
   const { data: results, isFetching, error } = useTmdbSearch(q);
   const { addByTmdb, hasTmdb } = useMovies();
-  const navigate = useNavigate();
 
   // Instant 1-click Watchlist Add (no scrolling or form needed)
   const handleQuickWatchlist = (e: React.MouseEvent, movie: TmdbSearchResult) => {
@@ -135,9 +133,7 @@ export function TmdbSearchPicker({ compact = false }: { compact?: boolean }) {
     }
 
     toast.success(`"${selected.title}" logged successfully!`);
-    const targetStatus = status;
     setSelected(null);
-    navigate({ to: targetStatus === "watched" ? "/watched" : "/watchlist", params: {} });
   };
 
   return (
